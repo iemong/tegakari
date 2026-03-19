@@ -200,7 +200,7 @@ export default function Overlay() {
       const target = e.target as Element
 
       e.preventDefault()
-      e.stopPropagation()
+      e.stopImmediatePropagation()
 
       const info: ElementInfo = {
         selector: generateSelector(target),
@@ -234,12 +234,28 @@ export default function Overlay() {
       )
     }
 
+    // Suppress mousedown/mouseup/pointerdown/pointerup to prevent
+    // JS-driven navigation and other side effects on page elements
+    const suppressEvent = (e: Event) => {
+      if (isFromPlasmoUI(e)) return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+    }
+
     document.addEventListener("mousemove", handleMouseMove, true)
     document.addEventListener("click", handleClick, true)
+    document.addEventListener("mousedown", suppressEvent, true)
+    document.addEventListener("mouseup", suppressEvent, true)
+    document.addEventListener("pointerdown", suppressEvent, true)
+    document.addEventListener("pointerup", suppressEvent, true)
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove, true)
       document.removeEventListener("click", handleClick, true)
+      document.removeEventListener("mousedown", suppressEvent, true)
+      document.removeEventListener("mouseup", suppressEvent, true)
+      document.removeEventListener("pointerdown", suppressEvent, true)
+      document.removeEventListener("pointerup", suppressEvent, true)
     }
   }, [isActive])
 
