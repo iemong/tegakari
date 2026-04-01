@@ -478,7 +478,6 @@ export default function Overlay() {
         metadata={metadata}
         onSelectAnnotation={setActiveAnnotationId}
         onUpdateInstruction={handleUpdateInstruction}
-        onDeleteAnnotation={handleDeleteAnnotation}
         onArchiveAnnotation={handleArchiveAnnotation}
         onUnarchiveAnnotation={handleUnarchiveAnnotation}
         onClearAll={handleClearAll}
