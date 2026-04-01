@@ -66,6 +66,11 @@ export function generateJsonl(input: MarkdownInput): string {
 export function generateBatchJsonl(input: BatchInput): string {
   const lines: string[] = []
 
+  // Prefix (if set)
+  if (input.prefix) {
+    lines.push(JSON.stringify({ type: "prefix", content: input.prefix }))
+  }
+
   // Page context (once)
   const pageContext: Record<string, unknown> = {
     type: "pageContext",

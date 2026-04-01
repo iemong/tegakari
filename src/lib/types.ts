@@ -77,4 +77,10 @@ export interface BatchInput {
   pageUrl: string
   pageTitle: string
   annotations: Annotation[]
+  prefix?: string
+}
+
+export interface PrefixRule {
+  pattern: string // URL pattern (e.g., "localhost:3000", "example.com")
+  prefix: string  // Free text prefix (e.g., "[repo=my-app]")
 }

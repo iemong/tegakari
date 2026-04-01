@@ -1,7 +1,13 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { generateBatchJsonl } from "~lib/jsonl-generator"
 import { generateBatchMarkdown } from "~lib/markdown-generator"
+import {
+  extractHost,
+  findMatchingPrefix,
+  loadPrefixRules,
+  upsertPrefixRule,
+} from "~lib/prefix-rules"
 import { useTheme } from "~lib/theme"
 import type { Annotation, OutputFormat } from "~lib/types"
 
@@ -50,18 +56,48 @@ export default function AnnotationPanel({
   const { theme, mode, toggleMode } = useTheme()
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("jsonl")
   const [copied, setCopied] = useState(false)
+  const [prefix, setPrefix] = useState("")
+  const [rememberPrefix, setRememberPrefix] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
+  const currentHost = extractHost(location.href)
+
+  // Load saved prefix rule for current host on mount
+  useEffect(() => {
+    loadPrefixRules().then((rules) => {
+      const matched = findMatchingPrefix(rules, location.href)
+      if (matched) {
+        setPrefix(matched)
+        setRememberPrefix(true)
+      }
+    })
+  }, [])
+
+  // Save/update prefix rule when rememberPrefix is toggled or prefix changes
+  const handlePrefixBlur = useCallback(() => {
+    if (rememberPrefix && prefix.trim() && currentHost) {
+      upsertPrefixRule({ pattern: currentHost, prefix: prefix.trim() })
+    }
+  }, [rememberPrefix, prefix, currentHost])
+
+  const handleRememberToggle = useCallback(() => {
+    const next = !rememberPrefix
+    setRememberPrefix(next)
+    if (next && prefix.trim() && currentHost) {
+      upsertPrefixRule({ pattern: currentHost, prefix: prefix.trim() })
+    }
+  }, [rememberPrefix, prefix, currentHost])
 
   const buildOutput = useCallback(() => {
     const input = {
       pageUrl: location.href,
       pageTitle: document.title,
       annotations,
+      prefix: prefix.trim() || undefined,
     }
     return outputFormat === "jsonl"
       ? generateBatchJsonl(input)
       : generateBatchMarkdown(input)
-  }, [annotations, outputFormat])
+  }, [annotations, outputFormat, prefix])
 
   const handleCopy = useCallback(async () => {
     const output = buildOutput()
@@ -358,6 +394,59 @@ export default function AnnotationPanel({
             gap: 8,
             flexShrink: 0,
           }}>
+          {/* Prefix input */}
+          <div>
+            <input
+              type="text"
+              value={prefix}
+              onChange={(e) => setPrefix(e.target.value)}
+              onBlur={handlePrefixBlur}
+              placeholder="Prefix (e.g., [repo=my-app])"
+              style={{
+                width: "100%",
+                padding: "7px 10px",
+                backgroundColor: theme.inputBg,
+                color: theme.textPrimary,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 8,
+                fontSize: 12,
+                fontFamily: theme.fontMono,
+                boxSizing: "border-box",
+                outline: "none",
+                transition: "border-color 0.15s",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = theme.accent
+              }}
+              onBlurCapture={(e) => {
+                e.currentTarget.style.borderColor = theme.border
+              }}
+            />
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 4,
+                fontSize: 11,
+                color: theme.textMuted,
+                cursor: "pointer",
+                userSelect: "none",
+              }}>
+              <input
+                type="checkbox"
+                checked={rememberPrefix}
+                onChange={handleRememberToggle}
+                style={{
+                  accentColor: theme.accent,
+                  margin: 0,
+                  cursor: "pointer",
+                }}
+              />
+              Remember for {currentHost}
+            </label>
+          </div>
+
           {/* Format toggle */}
           <div
             style={{

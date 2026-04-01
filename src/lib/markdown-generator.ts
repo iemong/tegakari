@@ -113,7 +113,8 @@ export function generateBatchMarkdown(input: BatchInput): string {
     sections.push(`## Annotation #${annotation.id}\n${lines.join("\n")}`)
   }
 
-  return sections.join("\n\n")
+  const body = sections.join("\n\n")
+  return input.prefix ? `${input.prefix}\n\n${body}` : body
 }
 
 function formatObject(obj: Record<string, unknown>): string {
