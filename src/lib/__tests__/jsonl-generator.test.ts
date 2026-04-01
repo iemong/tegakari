@@ -189,6 +189,8 @@ describe("generateBatchJsonl", () => {
           instruction: "Fix this",
           pageX: 100,
           pageY: 200,
+          status: "default" as const,
+          createdAt: 0,
         },
         {
           id: 2,
@@ -198,6 +200,8 @@ describe("generateBatchJsonl", () => {
           instruction: "   ",
           pageX: 300,
           pageY: 400,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -254,6 +258,8 @@ describe("generateBatchJsonl", () => {
           instruction: "test",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -284,6 +290,8 @@ describe("generateBatchJsonl", () => {
           instruction: "test",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -314,6 +322,8 @@ describe("generateBatchJsonl", () => {
           instruction: "test",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -339,6 +349,8 @@ describe("generateBatchJsonl", () => {
           instruction: "",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }

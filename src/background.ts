@@ -5,6 +5,10 @@ chrome.action.onClicked.addListener(async (tab) => {
 })
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "TEGAKARI_OPEN_OPTIONS") {
+    chrome.runtime.openOptionsPage()
+    return false
+  }
   if (message?.type === "TEGAKARI_CAPTURE") {
     chrome.tabs
       .captureVisibleTab({ format: "png" })

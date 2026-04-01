@@ -2,15 +2,24 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { PlasmoCSConfig, PlasmoGetStyle } from "plasmo"
 
-import AnnotationPanel from "~components/AnnotationPanel"
 import AnnotationPin from "~components/AnnotationPin"
 import HighlightBox from "~components/HighlightBox"
+import Toolbar from "~components/Toolbar"
+import {
+  clearAllAnnotations,
+  clearArchivedAnnotations,
+  collectPageMetadata,
+  loadAnnotationStore,
+  updateAnnotations,
+} from "~lib/annotation-store"
 import { generateSelector } from "~lib/selector"
 import { type ThemeMode, ThemeContext, darkTheme, lightTheme } from "~lib/theme"
 import type {
   Annotation,
+  CaptureResponse,
   CollectResult,
   ElementInfo,
+  PageMetadata,
   Rect,
 } from "~lib/types"
 
@@ -73,6 +82,51 @@ function isFromPlasmoUI(e: Event): boolean {
   )
 }
 
+/** Capture visible tab screenshot via background */
+async function captureScreenshot(): Promise<string | null> {
+  try {
+    const response: CaptureResponse = await chrome.runtime.sendMessage({
+      type: "TEGAKARI_CAPTURE",
+    })
+    if (response.success && response.dataUrl) {
+      return response.dataUrl
+    }
+  } catch {
+    // silently fail
+  }
+  return null
+}
+
+/** Crop a screenshot to the element's bounding rect */
+async function cropToElement(
+  fullDataUrl: string,
+  rect: DOMRect,
+  padding = 20
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const dpr = window.devicePixelRatio || 1
+      const x = Math.max(0, (rect.left - padding) * dpr)
+      const y = Math.max(0, (rect.top - padding) * dpr)
+      const w = Math.min(img.width - x, (rect.width + padding * 2) * dpr)
+      const h = Math.min(img.height - y, (rect.height + padding * 2) * dpr)
+
+      const canvas = document.createElement("canvas")
+      // Limit output size for storage
+      const maxW = 400
+      const scale = w > maxW ? maxW / w : 1
+      canvas.width = w * scale
+      canvas.height = h * scale
+      const ctx = canvas.getContext("2d")!
+      ctx.drawImage(img, x, y, w, h, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL("image/jpeg", 0.7))
+    }
+    img.onerror = () => resolve(fullDataUrl)
+    img.src = fullDataUrl
+  })
+}
+
 export default function Overlay() {
   const [isActive, setIsActive] = useState(false)
   const [hoveredRect, setHoveredRect] = useState<Rect | null>(null)
@@ -80,6 +134,7 @@ export default function Overlay() {
   const [activeAnnotationId, setActiveAnnotationId] = useState<number | null>(null)
   const [scrollTick, setScrollTick] = useState(0)
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark")
+  const [metadata, setMetadata] = useState<PageMetadata | null>(null)
 
   // Load saved theme on mount
   useEffect(() => {
@@ -103,18 +158,36 @@ export default function Overlay() {
   const pendingIdRef = useRef<number | null>(null)
   const cursorStyleRef = useRef<HTMLStyleElement | null>(null)
 
+  // Load persisted annotations on activate
+  const loadPersistedAnnotations = useCallback(async () => {
+    const store = await loadAnnotationStore(location.href)
+    if (store && store.annotations.length > 0) {
+      setAnnotations(store.annotations)
+      const maxId = Math.max(...store.annotations.map((a) => a.id))
+      nextIdRef.current = maxId + 1
+      setMetadata(store.metadata)
+    }
+  }, [])
+
+  // Persist annotations whenever they change
+  const persistAnnotations = useCallback(
+    async (anns: Annotation[]) => {
+      const meta = metadata ?? collectPageMetadata(null)
+      await updateAnnotations(location.href, meta, anns)
+    },
+    [metadata]
+  )
+
   // Listen for toggle from background
   useEffect(() => {
     const handler = (message: any) => {
       if (message?.type === "TEGAKARI_TOGGLE") {
         setIsActive((prev) => {
-          if (prev) {
-            // Deactivating — clear everything
-            setAnnotations([])
-            setActiveAnnotationId(null)
-            setHoveredRect(null)
-            nextIdRef.current = 1
-            pendingIdRef.current = null
+          if (!prev) {
+            // Activating — load persisted & collect metadata
+            loadPersistedAnnotations()
+            const meta = collectPageMetadata(null)
+            setMetadata(meta)
           }
           return !prev
         })
@@ -122,7 +195,7 @@ export default function Overlay() {
     }
     chrome.runtime.onMessage.addListener(handler)
     return () => chrome.runtime.onMessage.removeListener(handler)
-  }, [])
+  }, [loadPersistedAnnotations])
 
   // Listen for results from main world
   useEffect(() => {
@@ -134,17 +207,23 @@ export default function Overlay() {
       if (pendingId === null) return
       pendingIdRef.current = null
 
-      setAnnotations((prev) =>
-        prev.map((a) =>
+      setAnnotations((prev) => {
+        const updated = prev.map((a) =>
           a.id === pendingId
             ? { ...a, frameworkInfo: result.framework, componentInfo: result.component }
             : a
         )
-      )
+        persistAnnotations(updated)
+        // Update metadata with framework info
+        if (result.framework) {
+          setMetadata((m) => m ? { ...m, frameworkInfo: result.framework } : m)
+        }
+        return updated
+      })
     }
     window.addEventListener("message", handler)
     return () => window.removeEventListener("message", handler)
-  }, [])
+  }, [persistAnnotations])
 
   // Cursor style when picking
   useEffect(() => {
@@ -213,6 +292,7 @@ export default function Overlay() {
       }
 
       const id = nextIdRef.current++
+      const boundingRect = target.getBoundingClientRect()
       const newAnnotation: Annotation = {
         id,
         elementInfo: info,
@@ -221,10 +301,30 @@ export default function Overlay() {
         instruction: "",
         pageX: e.pageX,
         pageY: e.pageY,
+        status: "default",
+        createdAt: Date.now(),
       }
 
-      setAnnotations((prev) => [...prev, newAnnotation])
+      setAnnotations((prev) => {
+        const updated = [...prev, newAnnotation]
+        persistAnnotations(updated)
+        return updated
+      })
       setActiveAnnotationId(id)
+
+      // Auto-capture screenshot of the element
+      captureScreenshot().then(async (fullScreenshot) => {
+        if (fullScreenshot) {
+          const cropped = await cropToElement(fullScreenshot, boundingRect)
+          setAnnotations((prev) => {
+            const updated = prev.map((a) =>
+              a.id === id ? { ...a, screenshot: cropped } : a
+            )
+            persistAnnotations(updated)
+            return updated
+          })
+        }
+      })
 
       // Request framework info from main world
       pendingIdRef.current = id
@@ -257,29 +357,79 @@ export default function Overlay() {
       document.removeEventListener("pointerdown", suppressEvent, true)
       document.removeEventListener("pointerup", suppressEvent, true)
     }
-  }, [isActive])
+  }, [isActive, persistAnnotations])
 
   const handleUpdateInstruction = useCallback(
     (id: number, instruction: string) => {
-      setAnnotations((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, instruction } : a))
-      )
+      setAnnotations((prev) => {
+        const updated = prev.map((a) => (a.id === id ? { ...a, instruction } : a))
+        persistAnnotations(updated)
+        return updated
+      })
     },
-    []
+    [persistAnnotations]
   )
 
-  const handleDeleteAnnotation = useCallback((id: number) => {
-    setAnnotations((prev) => prev.filter((a) => a.id !== id))
-    setActiveAnnotationId((prev) => (prev === id ? null : prev))
+  const handleDeleteAnnotation = useCallback(
+    (id: number) => {
+      setAnnotations((prev) => {
+        const updated = prev.filter((a) => a.id !== id)
+        persistAnnotations(updated)
+        return updated
+      })
+      setActiveAnnotationId((prev) => (prev === id ? null : prev))
+    },
+    [persistAnnotations]
+  )
+
+  const handleArchiveAnnotation = useCallback(
+    (id: number) => {
+      setAnnotations((prev) => {
+        const updated = prev.map((a) =>
+          a.id === id ? { ...a, status: "archived" as const } : a
+        )
+        persistAnnotations(updated)
+        return updated
+      })
+      setActiveAnnotationId((prev) => (prev === id ? null : prev))
+    },
+    [persistAnnotations]
+  )
+
+  const handleUnarchiveAnnotation = useCallback(
+    (id: number) => {
+      setAnnotations((prev) => {
+        const updated = prev.map((a) =>
+          a.id === id ? { ...a, status: "default" as const } : a
+        )
+        persistAnnotations(updated)
+        return updated
+      })
+    },
+    [persistAnnotations]
+  )
+
+  const handleClearAll = useCallback(async () => {
+    setAnnotations([])
+    setActiveAnnotationId(null)
+    nextIdRef.current = 1
+    await clearAllAnnotations(location.href)
   }, [])
+
+  const handleClearArchived = useCallback(async () => {
+    setAnnotations((prev) => {
+      const updated = prev.filter((a) => a.status !== "archived")
+      persistAnnotations(updated)
+      return updated
+    })
+    await clearArchivedAnnotations(location.href)
+  }, [persistAnnotations])
 
   const handleClose = useCallback(() => {
     setIsActive(false)
-    setAnnotations([])
-    setActiveAnnotationId(null)
     setHoveredRect(null)
-    nextIdRef.current = 1
-    pendingIdRef.current = null
+    setActiveAnnotationId(null)
+    // Don't clear annotations — they're persisted
   }, [])
 
   // Escape key
@@ -287,39 +437,52 @@ export default function Overlay() {
     if (!isActive && annotations.length === 0) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        handleClose()
+        if (activeAnnotationId !== null) {
+          setActiveAnnotationId(null)
+        } else {
+          handleClose()
+        }
       }
     }
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [isActive, annotations.length, handleClose])
+  }, [isActive, annotations.length, handleClose, activeAnnotationId])
 
   // Suppress scrollTick unused warning — it's used to trigger re-renders
   void scrollTick
 
   if (!isActive && annotations.length === 0) return null
 
+  const defaultAnnotations = annotations.filter((a) => a.status === "default")
+
   return (
     <ThemeContext.Provider value={{ theme, mode: themeMode, toggleMode }}>
       {isActive && hoveredRect && <HighlightBox rect={hoveredRect} />}
 
-      {annotations.map((annotation) => (
+      {defaultAnnotations.map((annotation) => (
         <AnnotationPin
           key={annotation.id}
           annotation={annotation}
           isActive={activeAnnotationId === annotation.id}
           onClick={() => setActiveAnnotationId(annotation.id)}
           onUpdateInstruction={handleUpdateInstruction}
+          onArchive={handleArchiveAnnotation}
+          onDelete={handleDeleteAnnotation}
           onDeselect={() => setActiveAnnotationId(null)}
         />
       ))}
 
-      <AnnotationPanel
+      <Toolbar
         annotations={annotations}
         activeAnnotationId={activeAnnotationId}
+        metadata={metadata}
         onSelectAnnotation={setActiveAnnotationId}
         onUpdateInstruction={handleUpdateInstruction}
         onDeleteAnnotation={handleDeleteAnnotation}
+        onArchiveAnnotation={handleArchiveAnnotation}
+        onUnarchiveAnnotation={handleUnarchiveAnnotation}
+        onClearAll={handleClearAll}
+        onClearArchived={handleClearArchived}
         onClose={handleClose}
       />
     </ThemeContext.Provider>
