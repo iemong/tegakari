@@ -76,6 +76,12 @@ export function generateBatchMarkdown(input: BatchInput): string {
     if (firstFramework.metaFramework) contextLines.push(`- **Meta Framework**: ${firstFramework.metaFramework}`)
   }
   contextLines.push(`- **Page Title**: ${input.pageTitle}`)
+  if (input.metadata) {
+    const m = input.metadata
+    contextLines.push(`- **Viewport**: ${m.viewport.width}x${m.viewport.height}`)
+    contextLines.push(`- **Language**: ${m.language}`)
+    contextLines.push(`- **User Agent**: ${m.userAgent}`)
+  }
   sections.push(`## Page Context\n${contextLines.join("\n")}`)
 
   // Each annotation

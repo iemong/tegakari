@@ -51,6 +51,43 @@ export interface CaptureResponse {
   error?: string
 }
 
+// Page metadata collected automatically
+export interface PageMetadata {
+  url: string
+  title: string
+  viewport: { width: number; height: number }
+  userAgent: string
+  language: string
+  timestamp: number
+  frameworkInfo: FrameworkInfo | null
+}
+
+export type AnnotationStatus = "default" | "archived"
+
+export interface Annotation {
+  id: number
+  elementInfo: ElementInfo
+  frameworkInfo: FrameworkInfo | null
+  componentInfo: ComponentInfo | null
+  instruction: string
+  /** Click position relative to document (pageX/pageY) */
+  pageX: number
+  pageY: number
+  /** Auto-captured screenshot (data URL) */
+  screenshot?: string
+  /** Status for filtering */
+  status: AnnotationStatus
+  /** Creation timestamp */
+  createdAt: number
+}
+
+/** Stored per URL */
+export interface AnnotationStore {
+  url: string
+  metadata: PageMetadata
+  annotations: Annotation[]
+}
+
 export interface MarkdownInput {
   instruction: string
   pageUrl: string
@@ -62,22 +99,12 @@ export interface MarkdownInput {
 
 export type OutputFormat = "markdown" | "jsonl"
 
-export interface Annotation {
-  id: number
-  elementInfo: ElementInfo
-  frameworkInfo: FrameworkInfo | null
-  componentInfo: ComponentInfo | null
-  instruction: string
-  /** Click position relative to document (pageX/pageY) */
-  pageX: number
-  pageY: number
-}
-
 export interface BatchInput {
   pageUrl: string
   pageTitle: string
   annotations: Annotation[]
   prefix?: string
+  metadata?: PageMetadata
 }
 
 export interface PrefixRule {

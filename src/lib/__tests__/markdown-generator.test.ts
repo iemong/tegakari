@@ -296,6 +296,8 @@ describe("generateBatchMarkdown", () => {
           instruction: "Fix this",
           pageX: 100,
           pageY: 200,
+          status: "default" as const,
+          createdAt: 0,
         },
         {
           id: 2,
@@ -305,6 +307,8 @@ describe("generateBatchMarkdown", () => {
           instruction: "   ",
           pageX: 300,
           pageY: 400,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -340,6 +344,8 @@ describe("generateBatchMarkdown", () => {
           instruction: "test",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -368,6 +374,8 @@ describe("generateBatchMarkdown", () => {
           instruction: "test",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -390,6 +398,8 @@ describe("generateBatchMarkdown", () => {
           instruction: "check",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -418,6 +428,8 @@ describe("generateBatchMarkdown", () => {
           instruction: "test",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }
@@ -442,6 +454,8 @@ describe("generateBatchMarkdown", () => {
           instruction: "",
           pageX: 0,
           pageY: 0,
+          status: "default" as const,
+          createdAt: 0,
         },
       ],
     }

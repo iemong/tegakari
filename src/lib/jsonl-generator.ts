@@ -82,6 +82,11 @@ export function generateBatchJsonl(input: BatchInput): string {
     if (firstFramework.framework) pageContext.framework = firstFramework.framework
     if (firstFramework.metaFramework) pageContext.metaFramework = firstFramework.metaFramework
   }
+  if (input.metadata) {
+    pageContext.viewport = `${input.metadata.viewport.width}x${input.metadata.viewport.height}`
+    pageContext.language = input.metadata.language
+    pageContext.userAgent = input.metadata.userAgent
+  }
   lines.push(JSON.stringify(pageContext))
 
   // Each annotation
