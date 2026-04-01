@@ -4,7 +4,7 @@ import { generateBatchJsonl } from "~lib/jsonl-generator"
 import { generateBatchMarkdown } from "~lib/markdown-generator"
 import { findMatchingPrefix, loadPrefixRules } from "~lib/prefix-rules"
 import { useTheme } from "~lib/theme"
-import type { Annotation, AnnotationStatus, OutputFormat, PageMetadata } from "~lib/types"
+import type { Annotation, OutputFormat, PageMetadata } from "~lib/types"
 
 interface Props {
   annotations: Annotation[]
@@ -12,7 +12,6 @@ interface Props {
   metadata: PageMetadata | null
   onSelectAnnotation: (id: number) => void
   onUpdateInstruction: (id: number, instruction: string) => void
-  onDeleteAnnotation: (id: number) => void
   onArchiveAnnotation: (id: number) => void
   onUnarchiveAnnotation: (id: number) => void
   onClearAll: () => void
@@ -117,7 +116,6 @@ export default function Toolbar({
   metadata,
   onSelectAnnotation,
   onUpdateInstruction,
-  onDeleteAnnotation,
   onArchiveAnnotation,
   onUnarchiveAnnotation,
   onClearAll,
@@ -132,6 +130,7 @@ export default function Toolbar({
   const [prefix, setPrefix] = useState("")
   const [matchedPrefix, setMatchedPrefix] = useState<string | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [copiedItemId, setCopiedItemId] = useState<number | null>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
 
   const defaultAnnotations = annotations.filter((a) => a.status === "default")
@@ -201,6 +200,41 @@ export default function Toolbar({
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [buildOutput, defaultAnnotations.length])
+
+  const handleCopyItem = useCallback(
+    async (annotation: Annotation) => {
+      const input = {
+        pageUrl: location.href,
+        pageTitle: document.title,
+        annotations: [annotation],
+        prefix: prefix.trim() || undefined,
+        metadata: metadata ?? undefined,
+      }
+      const output =
+        outputFormat === "jsonl"
+          ? generateBatchJsonl(input)
+          : generateBatchMarkdown(input)
+      try {
+        await navigator.clipboard.writeText(output)
+      } catch {
+        try {
+          const textarea = document.createElement("textarea")
+          textarea.value = output
+          textarea.style.position = "fixed"
+          textarea.style.opacity = "0"
+          document.body.appendChild(textarea)
+          textarea.select()
+          document.execCommand("copy")
+          document.body.removeChild(textarea)
+        } catch {
+          // silently fail
+        }
+      }
+      setCopiedItemId(annotation.id)
+      setTimeout(() => setCopiedItemId(null), 1500)
+    },
+    [prefix, metadata, outputFormat]
+  )
 
   const handleClearAll = useCallback(() => {
     if (!confirmClear) {
@@ -608,6 +642,23 @@ export default function Toolbar({
 
                       {/* Action buttons */}
                       <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                        {/* Copy single item */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCopyItem(annotation)
+                          }}
+                          style={{ ...btnBase, padding: 4 }}
+                          title={copiedItemId === annotation.id ? "Copied!" : "Copy"}>
+                          <CopyIcon
+                            color={
+                              copiedItemId === annotation.id
+                                ? theme.success
+                                : theme.textMuted
+                            }
+                          />
+                        </button>
+                        {/* Archive / Restore */}
                         {isArchived ? (
                           <button
                             onClick={(e) => {
@@ -629,15 +680,6 @@ export default function Toolbar({
                             <ArchiveIcon color={theme.textMuted} />
                           </button>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteAnnotation(annotation.id)
-                          }}
-                          style={{ ...btnBase, padding: 4 }}
-                          title="Delete">
-                          <TrashIcon color={theme.danger} />
-                        </button>
                       </div>
                     </div>
 
