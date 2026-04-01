@@ -2,12 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { generateBatchJsonl } from "~lib/jsonl-generator"
 import { generateBatchMarkdown } from "~lib/markdown-generator"
-import {
-  extractHost,
-  findMatchingPrefix,
-  loadPrefixRules,
-  upsertPrefixRule,
-} from "~lib/prefix-rules"
+import { findMatchingPrefix, loadPrefixRules } from "~lib/prefix-rules"
 import { useTheme } from "~lib/theme"
 import type { Annotation, OutputFormat } from "~lib/types"
 
@@ -57,35 +52,37 @@ export default function AnnotationPanel({
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("jsonl")
   const [copied, setCopied] = useState(false)
   const [prefix, setPrefix] = useState("")
-  const [rememberPrefix, setRememberPrefix] = useState(false)
+  const [matchedPrefix, setMatchedPrefix] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const currentHost = extractHost(location.href)
 
-  // Load saved prefix rule for current host on mount
+  // Load saved prefix rule for current URL on mount
   useEffect(() => {
     loadPrefixRules().then((rules) => {
       const matched = findMatchingPrefix(rules, location.href)
       if (matched) {
         setPrefix(matched)
-        setRememberPrefix(true)
+        setMatchedPrefix(matched)
       }
     })
   }, [])
 
-  // Save/update prefix rule when rememberPrefix is toggled or prefix changes
-  const handlePrefixBlur = useCallback(() => {
-    if (rememberPrefix && prefix.trim() && currentHost) {
-      upsertPrefixRule({ pattern: currentHost, prefix: prefix.trim() })
+  // Listen for storage changes (user edited rules in Options page)
+  useEffect(() => {
+    const listener = () => {
+      loadPrefixRules().then((rules) => {
+        const matched = findMatchingPrefix(rules, location.href)
+        setMatchedPrefix(matched)
+        if (matched) setPrefix(matched)
+        else setPrefix("")
+      })
     }
-  }, [rememberPrefix, prefix, currentHost])
+    chrome.storage.onChanged.addListener(listener)
+    return () => chrome.storage.onChanged.removeListener(listener)
+  }, [])
 
-  const handleRememberToggle = useCallback(() => {
-    const next = !rememberPrefix
-    setRememberPrefix(next)
-    if (next && prefix.trim() && currentHost) {
-      upsertPrefixRule({ pattern: currentHost, prefix: prefix.trim() })
-    }
-  }, [rememberPrefix, prefix, currentHost])
+  const openOptions = useCallback(() => {
+    chrome.runtime.sendMessage({ type: "TEGAKARI_OPEN_OPTIONS" })
+  }, [])
 
   const buildOutput = useCallback(() => {
     const input = {
@@ -394,20 +391,24 @@ export default function AnnotationPanel({
             gap: 8,
             flexShrink: 0,
           }}>
-          {/* Prefix input */}
-          <div>
+          {/* Prefix */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}>
             <input
               type="text"
               value={prefix}
               onChange={(e) => setPrefix(e.target.value)}
-              onBlur={handlePrefixBlur}
               placeholder="Prefix (e.g., [repo=my-app])"
               style={{
-                width: "100%",
+                flex: 1,
                 padding: "7px 10px",
                 backgroundColor: theme.inputBg,
                 color: theme.textPrimary,
-                border: `1px solid ${theme.border}`,
+                border: `1px solid ${matchedPrefix ? theme.accent : theme.border}`,
                 borderRadius: 8,
                 fontSize: 12,
                 fontFamily: theme.fontMono,
@@ -418,33 +419,40 @@ export default function AnnotationPanel({
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = theme.accent
               }}
-              onBlurCapture={(e) => {
-                e.currentTarget.style.borderColor = theme.border
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = matchedPrefix
+                  ? theme.accent
+                  : theme.border
               }}
             />
-            <label
+            <button
+              onClick={openOptions}
+              title="Manage prefix rules"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginTop: 4,
-                fontSize: 11,
+                background: "none",
+                border: `1px solid ${theme.border}`,
+                borderRadius: 6,
                 color: theme.textMuted,
                 cursor: "pointer",
-                userSelect: "none",
+                fontSize: 14,
+                padding: "5px 7px",
+                lineHeight: 1,
+                flexShrink: 0,
+                transition: "border-color 0.15s, color 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = theme.accent
+                e.currentTarget.style.borderColor = theme.accent
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = theme.textMuted
+                e.currentTarget.style.borderColor = theme.border
               }}>
-              <input
-                type="checkbox"
-                checked={rememberPrefix}
-                onChange={handleRememberToggle}
-                style={{
-                  accentColor: theme.accent,
-                  margin: 0,
-                  cursor: "pointer",
-                }}
-              />
-              Remember for {currentHost}
-            </label>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
           </div>
 
           {/* Format toggle */}

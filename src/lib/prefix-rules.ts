@@ -35,24 +35,44 @@ export async function deletePrefixRule(pattern: string): Promise<void> {
   await savePrefixRules(rules.filter((r) => r.pattern !== pattern))
 }
 
-/** Find a matching prefix for the given URL */
+/** Find a matching prefix for the given URL. First match wins. */
 export function findMatchingPrefix(
   rules: PrefixRule[],
   url: string
 ): string | null {
+  let host: string
   try {
-    const parsed = new URL(url)
-    const host = parsed.host // e.g., "localhost:3000", "example.com"
+    host = new URL(url).host
+  } catch {
+    return null
+  }
 
-    for (const rule of rules) {
+  for (const rule of rules) {
+    if (rule.isRegex) {
+      try {
+        if (new RegExp(rule.pattern).test(url)) {
+          return rule.prefix
+        }
+      } catch {
+        // invalid regex, skip
+      }
+    } else {
       if (host === rule.pattern || host.endsWith(`.${rule.pattern}`)) {
         return rule.prefix
       }
     }
-  } catch {
-    // invalid URL
   }
   return null
+}
+
+/** Validate a regex pattern. Returns null if valid, error message if invalid. */
+export function validateRegex(pattern: string): string | null {
+  try {
+    new RegExp(pattern)
+    return null
+  } catch (e) {
+    return (e as Error).message
+  }
 }
 
 /** Extract host from URL for use as default pattern */

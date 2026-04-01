@@ -81,6 +81,7 @@ export interface BatchInput {
 }
 
 export interface PrefixRule {
-  pattern: string // URL pattern (e.g., "localhost:3000", "example.com")
+  pattern: string // URL pattern (e.g., "localhost:3000", "example.com") or regex
   prefix: string  // Free text prefix (e.g., "[repo=my-app]")
+  isRegex?: boolean // If true, pattern is a regex matched against the full URL
 }
