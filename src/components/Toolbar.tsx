@@ -282,21 +282,6 @@ export default function Toolbar({
           zIndex: 2147483647,
           userSelect: "none",
         }}>
-        {/* Logo */}
-        <span
-          style={{
-            fontWeight: 700,
-            fontSize: 12,
-            color: theme.accent,
-            padding: "0 8px 0 6px",
-            letterSpacing: "-0.02em",
-          }}>
-          tegakari
-        </span>
-
-        {/* Divider */}
-        <div style={{ width: 1, height: 20, backgroundColor: theme.border }} />
-
         {/* Inbox button */}
         <button
           onClick={() => setInboxOpen(!inboxOpen)}
