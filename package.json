@@ -8,7 +8,10 @@
     "build": "plasmo build",
     "package": "plasmo build --zip",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "plasmo": "^0.89.0",
@@ -16,6 +19,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/chrome": "^0.0.268",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.0",
