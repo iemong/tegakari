@@ -6,7 +6,11 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "TEGAKARI_OPEN_OPTIONS") {
-    chrome.runtime.openOptionsPage()
+    // `chrome.runtime.openOptionsPage()` silently no-ops in some Chromium
+    // derivatives (notably Arc), even when `options_ui.open_in_tab` is true.
+    // Opening the options page as a plain tab works uniformly across
+    // Chrome / Arc / Edge / Brave.
+    chrome.tabs.create({ url: chrome.runtime.getURL("options.html") })
     return false
   }
   if (message?.type === "TEGAKARI_CAPTURE") {

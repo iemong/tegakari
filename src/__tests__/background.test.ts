@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 const mockSendMessage = vi.fn()
 const mockCaptureVisibleTab = vi.fn()
+const mockTabsCreate = vi.fn()
+const mockGetURL = vi.fn((path: string) => `chrome-extension://test-id/${path}`)
 const onClickedListeners: Function[] = []
 const onMessageListeners: Function[] = []
 
@@ -14,11 +16,13 @@ vi.stubGlobal("chrome", {
   tabs: {
     sendMessage: mockSendMessage,
     captureVisibleTab: mockCaptureVisibleTab,
+    create: mockTabsCreate,
   },
   runtime: {
     onMessage: {
       addListener: (fn: Function) => onMessageListeners.push(fn),
     },
+    getURL: mockGetURL,
   },
 })
 
@@ -27,6 +31,8 @@ describe("background", () => {
     vi.resetModules()
     mockSendMessage.mockReset()
     mockCaptureVisibleTab.mockReset()
+    mockTabsCreate.mockReset()
+    mockGetURL.mockClear()
     onClickedListeners.length = 0
     onMessageListeners.length = 0
     // @ts-expect-error background.ts is a side-effect-only script, not a module
@@ -112,5 +118,20 @@ describe("background", () => {
 
     expect(result).toBeUndefined()
     expect(mockCaptureVisibleTab).not.toHaveBeenCalled()
+  })
+
+  it("should open the options page as a new tab on TEGAKARI_OPEN_OPTIONS", () => {
+    const listener = onMessageListeners[0]
+    const sendResponse = vi.fn()
+
+    // We use chrome.tabs.create instead of chrome.runtime.openOptionsPage
+    // because the latter silently no-ops in some Chromium derivatives (Arc).
+    const result = listener({ type: "TEGAKARI_OPEN_OPTIONS" }, {}, sendResponse)
+
+    expect(result).toBe(false)
+    expect(mockGetURL).toHaveBeenCalledWith("options.html")
+    expect(mockTabsCreate).toHaveBeenCalledWith({
+      url: "chrome-extension://test-id/options.html",
+    })
   })
 })
