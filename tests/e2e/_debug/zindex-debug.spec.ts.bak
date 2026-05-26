@@ -1,0 +1,52 @@
+import { test, expect } from "./fixtures"
+
+const FIXTURE_URL =
+  process.env.FIXTURE_URL_OVERLAY ?? "http://localhost:4321/with-overlay.html"
+
+test("debug: who wins elementFromPoint at the settings button center", async ({
+  context,
+  activateExtension,
+}) => {
+  const page = await context.newPage()
+  await page.goto(FIXTURE_URL)
+  await activateExtension()
+
+  const settings = page.getByTitle("Prefix rules")
+  await expect(settings).toBeVisible()
+  const box = await settings.boundingBox()
+  expect(box).not.toBeNull()
+  const cx = box!.x + box!.width / 2
+  const cy = box!.y + box!.height / 2
+
+  // Inspect the actual DOM stacking situation at the click coordinate.
+  const report = await page.evaluate(({ x, y }) => {
+    const top = document.elementFromPoint(x, y)
+    const composed = document.elementsFromPoint(x, y).map((el) => ({
+      tag: el.tagName.toLowerCase(),
+      cls: el.className?.toString?.() ?? "",
+      id: (el as HTMLElement).id ?? "",
+    }))
+    const host = document.querySelector("plasmo-csui") as HTMLElement | null
+    const overlay = document.querySelector(".page-overlay") as HTMLElement | null
+    const bodyChildren = Array.from(document.body.children).map((el) => ({
+      tag: el.tagName.toLowerCase(),
+      cls: el.className?.toString?.() ?? "",
+    }))
+    const hostInfo = host
+      ? {
+          tag: host.tagName.toLowerCase(),
+          inlineStyle: host.getAttribute("style") ?? "",
+          computedPosition: getComputedStyle(host).position,
+          computedZIndex: getComputedStyle(host).zIndex,
+          computedDisplay: getComputedStyle(host).display,
+          parent: host.parentElement?.tagName.toLowerCase(),
+        }
+      : null
+    const docOrder = host && overlay
+      ? host.compareDocumentPosition(overlay)
+      : null
+    return { topTag: top?.tagName.toLowerCase(), composed, hostInfo, bodyChildren, docOrderPlasmoVsOverlay: docOrder }
+  }, { x: cx, y: cy })
+
+  console.log("[debug]", JSON.stringify(report, null, 2))
+})

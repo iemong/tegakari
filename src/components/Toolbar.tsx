@@ -161,6 +161,21 @@ export default function Toolbar({
     return () => chrome.storage.onChanged.removeListener(listener)
   }, [])
 
+  // Promote the toolbar to the browser's top layer so it cannot be covered
+  // by page-level `position: fixed; z-index: 2147483647` overlays (cookie
+  // banners, intercom widgets, etc.). Top layer ignores z-index entirely.
+  useEffect(() => {
+    const el = toolbarRef.current
+    if (!el || typeof (el as HTMLElement & { showPopover?: () => void }).showPopover !== "function") {
+      return
+    }
+    try {
+      ;(el as HTMLElement & { showPopover: () => void }).showPopover()
+    } catch {
+      // Already open or not connected — safe to ignore.
+    }
+  }, [])
+
   const openOptions = useCallback(() => {
     chrome.runtime.sendMessage({ type: "TEGAKARI_OPEN_OPTIONS" })
   }, [])
@@ -261,12 +276,22 @@ export default function Toolbar({
   return (
     <>
       {/* Bottom toolbar */}
+      {/*
+        `popover="manual"` + `showPopover()` (see effect above) lifts this
+        element into the browser's top layer so it cannot be covered by page
+        overlays that use high z-index values. UA stylesheets give popovers a
+        default `position: fixed; inset: 0; margin: auto`; the inline styles
+        below explicitly override `inset`, `margin`, and `border` so the
+        bottom-center placement is preserved.
+      */}
       <div
         ref={toolbarRef}
+        // @ts-expect-error popover attr is missing from React 18 types
+        popover="manual"
         style={{
           position: "fixed",
-          bottom: 16,
-          left: "50%",
+          inset: "auto auto 16px 50%",
+          margin: 0,
           transform: "translateX(-50%)",
           display: "flex",
           alignItems: "center",
@@ -279,6 +304,8 @@ export default function Toolbar({
           fontFamily: theme.fontFamily,
           fontSize: 13,
           pointerEvents: "auto",
+          // z-index is now redundant (top layer wins regardless) but kept as a
+          // fallback for the unlikely case that showPopover() failed.
           zIndex: 2147483647,
           userSelect: "none",
         }}>
