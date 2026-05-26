@@ -1,5 +1,35 @@
 :host {
+  /*
+   * `position: fixed` is required to make the `z-index` below actually take
+   * effect — without a positioning value, the host stays at `position: static`
+   * and z-index becomes a no-op, which lets any page-level `position: fixed`
+   * overlay with a high z-index cover the shadow UI (cookie banners, intercom
+   * widgets, marketing bars, etc.).
+   *
+   * Note: the Toolbar itself uses the Popover API and lives in the browser's
+   * top layer, so it does not rely on this z-index. But other descendants
+   * (highlight box, annotation pins) do, so the stacking context here still
+   * matters.
+   *
+   * The 0×0 box keeps the host invisible to hit-testing; descendants render
+   * via `overflow: visible` and still position themselves relative to the
+   * viewport with their own `position: fixed`.
+   */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
   pointer-events: none !important;
   overflow: visible !important;
   z-index: 2147483647 !important;
+}
+
+/*
+ * Disable the popover backdrop. We use popover="manual" purely to enter the
+ * top layer, not as a modal — there should be no visual overlay behind it.
+ */
+::backdrop {
+  display: none !important;
+  background: transparent !important;
 }

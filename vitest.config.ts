@@ -9,6 +9,9 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // Vitest picks up *.spec.ts by default; explicitly exclude the Playwright
+    // suite under tests/e2e so `pnpm test` only runs unit tests.
+    exclude: ["**/node_modules/**", "**/dist/**", "tests/e2e/**"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts", "src/**/*.tsx"],

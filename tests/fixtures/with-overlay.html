@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>tegakari e2e: z-index regression fixture</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 24px; }
+
+      /*
+       * Simulates a page that has its own bottom-center fixed bar
+       * with the same maximum z-index tegakari uses internally.
+       * Real-world offenders: cookie banners, intercom widgets,
+       * marketing CTAs that ship `z-index: 2147483647`.
+       */
+      .page-overlay {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: rgba(255, 0, 0, 0.75);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        z-index: 2147483647;
+        pointer-events: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>fixture with hostile bottom bar</h1>
+      <p>The red bar simulates a page overlay using the maximum z-index.</p>
+    </header>
+
+    <main>
+      <article>
+        <h2>Section</h2>
+        <p>Some content for the extension to pick.</p>
+        <button id="content-btn">Content button</button>
+      </article>
+    </main>
+
+    <div class="page-overlay">PAGE OVERLAY (z-index: 2147483647)</div>
+  </body>
+</html>
