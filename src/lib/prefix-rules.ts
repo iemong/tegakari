@@ -65,6 +65,47 @@ export function findMatchingPrefix(
   return null
 }
 
+/**
+ * Normalize a user-entered pattern into a hostname (with optional port) so
+ * host-mode rules match regardless of whether the user pasted a full URL,
+ * a scheme-less prefix, or a bare hostname.
+ *
+ * Examples:
+ *   "https://github.com/foo/bar"  -> "github.com"
+ *   "http://localhost:3000/x"     -> "localhost:3000"
+ *   "example.com/path"            -> "example.com"
+ *   " www.example.com "           -> "www.example.com"
+ *   "localhost:3000"              -> "localhost:3000"
+ *   ""                            -> ""
+ *   "not a host"                  -> "not a host" (left untouched as a last
+ *                                    resort; the matcher will just never hit)
+ */
+export function normalizePattern(input: string): string {
+  const trimmed = input.trim()
+  if (!trimmed) return ""
+
+  // 1) Full URL with a scheme — let URL extract the authority for us.
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+    try {
+      return new URL(trimmed).host
+    } catch {
+      // fall through
+    }
+  }
+
+  // 2) Strip anything after the first '/' so "example.com/path" becomes
+  //    "example.com" before we try to parse it.
+  const beforeSlash = trimmed.split("/")[0]
+
+  // 3) Parse as host[:port] by prepending an http:// scheme. This handles
+  //    bare "example.com" and "localhost:3000".
+  try {
+    return new URL(`http://${beforeSlash}`).host
+  } catch {
+    return trimmed
+  }
+}
+
 /** Validate a regex pattern. Returns null if valid, error message if invalid. */
 export function validateRegex(pattern: string): string | null {
   try {

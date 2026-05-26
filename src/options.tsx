@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import {
   deletePrefixRule,
   loadPrefixRules,
+  normalizePattern,
   savePrefixRules,
   validateRegex,
 } from "~lib/prefix-rules"
@@ -47,7 +48,11 @@ export default function OptionsPage() {
   }, [])
 
   const handleAdd = useCallback(async () => {
-    const pattern = newPattern.trim()
+    // Host-mode patterns are normalized so users can paste full URLs and
+    // still get a working rule. Regex patterns are taken verbatim.
+    const pattern = newIsRegex
+      ? newPattern.trim()
+      : normalizePattern(newPattern)
     const prefix = newPrefix.trim()
     if (!pattern || !prefix) {
       setError("Pattern and prefix are required")
@@ -95,7 +100,9 @@ export default function OptionsPage() {
 
   const handleSaveEdit = useCallback(async () => {
     if (editingIdx === null) return
-    const pattern = editPattern.trim()
+    const pattern = editIsRegex
+      ? editPattern.trim()
+      : normalizePattern(editPattern)
     const prefix = editPrefix.trim()
     if (!pattern || !prefix) {
       setEditError("Pattern and prefix are required")
@@ -471,7 +478,11 @@ export default function OptionsPage() {
                 setNewPattern(e.target.value)
                 setError("")
               }}
-              placeholder={newIsRegex ? "https?://example\\.com/.*" : "localhost:3000"}
+              placeholder={
+                newIsRegex
+                  ? "https?://example\\.com/.*"
+                  : "example.com  (URLを貼ってもOK)"
+              }
               style={inputStyle({ flex: 1 })}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleAdd()
