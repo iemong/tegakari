@@ -7,3 +7,8 @@ pre-commit:
     test:
       glob: "*.{ts,tsx}"
       run: pnpm test
+
+pre-push:
+  commands:
+    coverage:
+      run: pnpm test:coverage
