@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   extractHost,
   findMatchingPrefix,
+  mergeRules,
   normalizePattern,
+  parseRules,
+  serializeRules,
   validateRegex,
 } from "../prefix-rules"
 
@@ -132,6 +135,182 @@ describe("extractHost", () => {
 
   it("returns empty string for invalid URLs", () => {
     expect(extractHost("not-a-url")).toBe("")
+  })
+})
+
+describe("serializeRules", () => {
+  it("emits a stable, key-ordered, newline-terminated JSON array", () => {
+    const text = serializeRules([
+      { pattern: "github.com", prefix: "[gh]" },
+      {
+        pattern: "^https://example\\.com",
+        prefix: "[ex]",
+        isRegex: true,
+      },
+    ])
+    expect(text).toBe(
+      [
+        "[",
+        '  {',
+        '    "pattern": "github.com",',
+        '    "prefix": "[gh]"',
+        '  },',
+        '  {',
+        '    "pattern": "^https://example\\\\.com",',
+        '    "prefix": "[ex]",',
+        '    "isRegex": true',
+        '  }',
+        "]",
+        "",
+      ].join("\n")
+    )
+  })
+
+  it("omits isRegex when false", () => {
+    const text = serializeRules([
+      { pattern: "github.com", prefix: "[gh]", isRegex: false },
+    ])
+    expect(text).not.toContain("isRegex")
+  })
+
+  it("round-trips through parseRules", () => {
+    const rules = [
+      { pattern: "github.com", prefix: "[gh]" },
+      { pattern: "^https://example\\.com", prefix: "[ex]", isRegex: true },
+    ]
+    const text = serializeRules(rules)
+    const parsed = parseRules(text)
+    expect(parsed.errors).toEqual([])
+    expect(parsed.rules).toEqual(rules)
+  })
+})
+
+describe("parseRules", () => {
+  it("rejects non-JSON input with a single error", () => {
+    const r = parseRules("not json at all {")
+    expect(r.rules).toEqual([])
+    expect(r.errors).toHaveLength(1)
+    expect(r.errors[0]).toMatch(/Invalid JSON/)
+  })
+
+  it("rejects a non-array root", () => {
+    const r = parseRules('{"pattern":"x","prefix":"y"}')
+    expect(r.rules).toEqual([])
+    expect(r.errors).toEqual(["Expected a JSON array of rules"])
+  })
+
+  it("normalizes host-mode patterns on import", () => {
+    const r = parseRules(
+      JSON.stringify([
+        { pattern: "https://github.com/iemong/tegakari", prefix: "[gh]" },
+      ])
+    )
+    expect(r.errors).toEqual([])
+    expect(r.rules).toEqual([{ pattern: "github.com", prefix: "[gh]" }])
+  })
+
+  it("keeps regex patterns verbatim", () => {
+    const src = "^https://github\\.com/[^/]+/tegakari"
+    const r = parseRules(
+      JSON.stringify([{ pattern: src, prefix: "[t]", isRegex: true }])
+    )
+    expect(r.rules).toEqual([{ pattern: src, prefix: "[t]", isRegex: true }])
+  })
+
+  it("skips entries with missing required fields and reports them", () => {
+    const r = parseRules(
+      JSON.stringify([
+        { pattern: "github.com", prefix: "[ok]" },
+        { pattern: "", prefix: "[bad]" },
+        { prefix: "[no-pattern]" },
+        "not-an-object",
+      ])
+    )
+    expect(r.rules).toEqual([{ pattern: "github.com", prefix: "[ok]" }])
+    expect(r.errors).toHaveLength(3)
+    expect(r.errors.join("|")).toMatch(/entry #2/)
+    expect(r.errors.join("|")).toMatch(/entry #3/)
+    expect(r.errors.join("|")).toMatch(/entry #4/)
+  })
+
+  it("skips entries with invalid regex", () => {
+    const r = parseRules(
+      JSON.stringify([
+        { pattern: "(unclosed", prefix: "[bad]", isRegex: true },
+        { pattern: "github.com", prefix: "[ok]" },
+      ])
+    )
+    expect(r.rules).toEqual([{ pattern: "github.com", prefix: "[ok]" }])
+    expect(r.errors).toHaveLength(1)
+    expect(r.errors[0]).toMatch(/invalid regex/)
+  })
+
+  it("trims whitespace around pattern and prefix", () => {
+    const r = parseRules(
+      JSON.stringify([{ pattern: "  github.com  ", prefix: "  [gh]  " }])
+    )
+    expect(r.rules).toEqual([{ pattern: "github.com", prefix: "[gh]" }])
+  })
+})
+
+describe("mergeRules", () => {
+  it("overwrites existing rules with the same pattern in place", () => {
+    const merged = mergeRules(
+      [
+        { pattern: "a.com", prefix: "[a-old]" },
+        { pattern: "b.com", prefix: "[b]" },
+      ],
+      [{ pattern: "a.com", prefix: "[a-new]" }]
+    )
+    expect(merged).toEqual([
+      { pattern: "a.com", prefix: "[a-new]" },
+      { pattern: "b.com", prefix: "[b]" },
+    ])
+  })
+
+  it("appends new patterns at the end", () => {
+    const merged = mergeRules(
+      [{ pattern: "a.com", prefix: "[a]" }],
+      [{ pattern: "b.com", prefix: "[b]" }]
+    )
+    expect(merged).toEqual([
+      { pattern: "a.com", prefix: "[a]" },
+      { pattern: "b.com", prefix: "[b]" },
+    ])
+  })
+
+  it("preserves the order of existing rules", () => {
+    const merged = mergeRules(
+      [
+        { pattern: "a.com", prefix: "[a]" },
+        { pattern: "b.com", prefix: "[b]" },
+        { pattern: "c.com", prefix: "[c]" },
+      ],
+      [
+        { pattern: "b.com", prefix: "[b-new]" },
+        { pattern: "d.com", prefix: "[d]" },
+      ]
+    )
+    expect(merged.map((r) => r.pattern)).toEqual([
+      "a.com",
+      "b.com",
+      "c.com",
+      "d.com",
+    ])
+    expect(merged[1].prefix).toBe("[b-new]")
+  })
+
+  it("returns existing untouched when imported is empty", () => {
+    const existing = [{ pattern: "a.com", prefix: "[a]" }]
+    expect(mergeRules(existing, [])).toEqual(existing)
+  })
+
+  it("does not mutate the input arrays", () => {
+    const existing = [{ pattern: "a.com", prefix: "[a]" }]
+    const imported = [{ pattern: "a.com", prefix: "[a-new]" }]
+    mergeRules(existing, imported)
+    expect(existing).toEqual([{ pattern: "a.com", prefix: "[a]" }])
+    expect(imported).toEqual([{ pattern: "a.com", prefix: "[a-new]" }])
   })
 })
 

@@ -106,6 +106,99 @@ export function normalizePattern(input: string): string {
   }
 }
 
+/**
+ * Serialize rules to a stable, human-editable JSON string. Keys are emitted
+ * in a fixed order (pattern, prefix, isRegex) so diffs across exports stay
+ * readable and the file can be hand-edited.
+ */
+export function serializeRules(rules: PrefixRule[]): string {
+  const ordered = rules.map((r) => {
+    const out: PrefixRule = { pattern: r.pattern, prefix: r.prefix }
+    if (r.isRegex) out.isRegex = true
+    return out
+  })
+  return JSON.stringify(ordered, null, 2) + "\n"
+}
+
+export type ParsedRulesResult = {
+  rules: PrefixRule[]
+  errors: string[]
+}
+
+/**
+ * Parse rules from a JSON string. Invalid individual entries are skipped and
+ * collected into `errors` so the UI can surface a partial success. Returns
+ * `{ rules: [], errors: [...] }` when the input is not even a JSON array.
+ */
+export function parseRules(text: string): ParsedRulesResult {
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch (e) {
+    return { rules: [], errors: [`Invalid JSON: ${(e as Error).message}`] }
+  }
+  if (!Array.isArray(raw)) {
+    return { rules: [], errors: ["Expected a JSON array of rules"] }
+  }
+
+  const rules: PrefixRule[] = []
+  const errors: string[] = []
+
+  raw.forEach((entry, idx) => {
+    const label = `entry #${idx + 1}`
+    if (typeof entry !== "object" || entry === null) {
+      errors.push(`${label}: not an object`)
+      return
+    }
+    const e = entry as Record<string, unknown>
+    const pattern = typeof e.pattern === "string" ? e.pattern.trim() : ""
+    const prefix = typeof e.prefix === "string" ? e.prefix.trim() : ""
+    const isRegex = typeof e.isRegex === "boolean" ? e.isRegex : false
+
+    if (!pattern || !prefix) {
+      errors.push(`${label}: 'pattern' and 'prefix' are required strings`)
+      return
+    }
+    if (isRegex) {
+      const regexErr = validateRegex(pattern)
+      if (regexErr) {
+        errors.push(`${label}: invalid regex ('${pattern}'): ${regexErr}`)
+        return
+      }
+      rules.push({ pattern, prefix, isRegex: true })
+    } else {
+      rules.push({ pattern: normalizePattern(pattern), prefix })
+    }
+  })
+
+  return { rules, errors }
+}
+
+/**
+ * Merge imported rules into existing ones. Rules with the same pattern are
+ * overwritten in place; new patterns are appended at the end. Order of
+ * existing rules is preserved so users can keep their priority intact.
+ */
+export function mergeRules(
+  existing: PrefixRule[],
+  imported: PrefixRule[]
+): PrefixRule[] {
+  const byPattern = new Map<string, number>()
+  existing.forEach((r, i) => byPattern.set(r.pattern, i))
+
+  const merged = existing.map((r) => ({ ...r }))
+  for (const rule of imported) {
+    const idx = byPattern.get(rule.pattern)
+    if (idx !== undefined) {
+      merged[idx] = rule
+    } else {
+      byPattern.set(rule.pattern, merged.length)
+      merged.push(rule)
+    }
+  }
+  return merged
+}
+
 /** Validate a regex pattern. Returns null if valid, error message if invalid. */
 export function validateRegex(pattern: string): string | null {
   try {

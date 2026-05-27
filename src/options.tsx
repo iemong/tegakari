@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 
 import {
   deletePrefixRule,
   loadPrefixRules,
+  mergeRules,
   normalizePattern,
+  parseRules,
   savePrefixRules,
+  serializeRules,
   validateRegex,
 } from "~lib/prefix-rules"
 import { darkTheme, lightTheme, type Theme, type ThemeMode } from "~lib/theme"
@@ -42,10 +45,77 @@ export default function OptionsPage() {
   const [editPrefix, setEditPrefix] = useState("")
   const [editIsRegex, setEditIsRegex] = useState(false)
   const [editError, setEditError] = useState("")
+  const [ioMessage, setIoMessage] = useState<
+    { tone: "success" | "warning" | "error"; text: string } | null
+  >(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadPrefixRules().then(setRules)
   }, [])
+
+  const handleExport = useCallback(() => {
+    const text = serializeRules(rules)
+    const blob = new Blob([text], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    a.download = `tegakari-prefix-rules-${date}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    setIoMessage({
+      tone: "success",
+      text: `Exported ${rules.length} rule(s).`,
+    })
+  }, [rules])
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleImportFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      // Reset the input so the user can re-import the same file later.
+      event.target.value = ""
+      if (!file) return
+
+      let text: string
+      try {
+        text = await file.text()
+      } catch (e) {
+        setIoMessage({
+          tone: "error",
+          text: `Failed to read file: ${(e as Error).message}`,
+        })
+        return
+      }
+
+      const { rules: imported, errors } = parseRules(text)
+      if (imported.length === 0) {
+        setIoMessage({
+          tone: "error",
+          text: `Import failed. ${errors.join("; ") || "No valid rules found."}`,
+        })
+        return
+      }
+
+      const merged = mergeRules(rules, imported)
+      await savePrefixRules(merged)
+      setRules(merged)
+      setIoMessage({
+        tone: errors.length > 0 ? "warning" : "success",
+        text:
+          errors.length > 0
+            ? `Imported ${imported.length} rule(s); skipped ${errors.length}: ${errors.join("; ")}`
+            : `Imported ${imported.length} rule(s).`,
+      })
+    },
+    [rules]
+  )
 
   const handleAdd = useCallback(async () => {
     // Host-mode patterns are normalized so users can paste full URLs and
@@ -198,15 +268,86 @@ export default function OptionsPage() {
           }}>
           tegakari
         </h1>
-        <h2
+        <div
           style={{
-            fontSize: 15,
-            fontWeight: 400,
-            color: theme.textMuted,
-            marginBottom: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 24,
           }}>
-          Prefix Rules
-        </h2>
+          <h2
+            style={{
+              fontSize: 15,
+              fontWeight: 400,
+              color: theme.textMuted,
+              margin: 0,
+            }}>
+            Prefix Rules
+          </h2>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={handleImportClick}
+              style={btnStyle(theme.inputBg, theme.textPrimary, {
+                border: `1px solid ${theme.border}`,
+                padding: "6px 12px",
+                fontSize: 12,
+              })}
+              title="Import rules from a JSON file (existing rules with the same pattern will be overwritten)">
+              Import
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={rules.length === 0}
+              style={btnStyle(theme.inputBg, theme.textPrimary, {
+                border: `1px solid ${theme.border}`,
+                padding: "6px 12px",
+                fontSize: 12,
+                opacity: rules.length === 0 ? 0.5 : 1,
+                cursor: rules.length === 0 ? "not-allowed" : "pointer",
+              })}
+              title="Download all rules as JSON">
+              Export
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={handleImportFile}
+            />
+          </div>
+        </div>
+        {ioMessage && (
+          <div
+            role="status"
+            onClick={() => setIoMessage(null)}
+            style={{
+              marginBottom: 16,
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12,
+              cursor: "pointer",
+              backgroundColor:
+                ioMessage.tone === "error"
+                  ? "rgba(220,70,70,0.15)"
+                  : ioMessage.tone === "warning"
+                    ? "rgba(220,170,70,0.15)"
+                    : theme.accentMuted,
+              color:
+                ioMessage.tone === "error" ? "#d44" : theme.textPrimary,
+              border: `1px solid ${
+                ioMessage.tone === "error"
+                  ? "#d44"
+                  : ioMessage.tone === "warning"
+                    ? "#ca6"
+                    : theme.accent
+              }`,
+              whiteSpace: "pre-wrap",
+            }}>
+            {ioMessage.text}
+          </div>
+        )}
         <p
           style={{
             fontSize: 13,
