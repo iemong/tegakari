@@ -38,7 +38,11 @@ describe("main-world message handler", () => {
 
     const addEventListenerSpy = vi.spyOn(window, "addEventListener")
 
-    await import("../main-world")
+    const module = await import("../main-world")
+    expect(module.config).toEqual({
+      matches: ["<all_urls>"],
+      world: "MAIN",
+    })
 
     const call = addEventListenerSpy.mock.calls.find(
       (c) => c[0] === "message"
