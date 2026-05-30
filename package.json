@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "description": "Web要素を選択して、HTML・フレームワーク・コンポーネント情報とスクリーンショットをAIエディタ用にコピーするChrome拡張",
   "homepage": "https://github.com/iemong/tegakari",
+  "license": "MIT",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
