@@ -7,3 +7,4 @@ tsconfig.tsbuildinfo
 test-results/
 playwright-report/
 build/*.zip
+build/chrome-mv3-dev/
