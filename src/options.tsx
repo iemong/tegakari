@@ -1,5 +1,6 @@
 import { AddRuleForm } from "./options/components/add-rule-form"
 import { ExamplesTable } from "./options/components/examples-table"
+import { OptionsFooter } from "./options/components/options-footer"
 import { OptionsHeader } from "./options/components/options-header"
 import { RuleList } from "./options/components/rule-list"
 import { usePrefixRulesManager } from "./options/hooks/use-prefix-rules-manager"
@@ -58,6 +59,7 @@ export default function OptionsPage() {
           onAdd={addRule}
         />
         <ExamplesTable theme={theme} />
+        <OptionsFooter theme={theme} />
       </div>
     </div>
   )
