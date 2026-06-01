@@ -16,7 +16,7 @@ export interface CollectResult {
 }
 
 export interface FrameworkInfo {
-  framework: string | null   // "React" | "Vue"
+  framework: string | null // "React" | "Vue"
   metaFramework: string | null // "Next.js (App Router)" | "Nuxt"
 }
 
@@ -62,8 +62,6 @@ export interface PageMetadata {
   frameworkInfo: FrameworkInfo | null
 }
 
-export type AnnotationStatus = "default" | "archived"
-
 export interface Annotation {
   id: number
   elementInfo: ElementInfo
@@ -75,8 +73,6 @@ export interface Annotation {
   pageY: number
   /** Auto-captured screenshot (data URL) */
   screenshot?: string
-  /** Status for filtering */
-  status: AnnotationStatus
   /** Creation timestamp */
   createdAt: number
 }
@@ -109,6 +105,6 @@ export interface BatchInput {
 
 export interface PrefixRule {
   pattern: string // URL pattern (e.g., "localhost:3000", "example.com") or regex
-  prefix: string  // Free text prefix (e.g., "[repo=my-app]")
+  prefix: string // Free text prefix (e.g., "[repo=my-app]")
   isRegex?: boolean // If true, pattern is a regex matched against the full URL
 }

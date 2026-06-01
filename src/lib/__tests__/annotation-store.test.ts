@@ -1,14 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, expect, it, vi } from "vitest"
 
 import type { Annotation, AnnotationStore, PageMetadata } from "../types"
 import {
-  archiveAnnotation,
   clearAllAnnotations,
-  clearArchivedAnnotations,
   collectPageMetadata,
   loadAnnotationStore,
   saveAnnotationStore,
-  unarchiveAnnotation,
   updateAnnotations,
 } from "../annotation-store"
 
@@ -29,7 +26,7 @@ const metadata: PageMetadata = {
   frameworkInfo: null,
 }
 
-function annotation(id: number, status: Annotation["status"] = "default") {
+function annotation(id: number) {
   return {
     id,
     elementInfo: {
@@ -43,7 +40,6 @@ function annotation(id: number, status: Annotation["status"] = "default") {
     instruction: "",
     pageX: id,
     pageY: id,
-    status,
     createdAt: id,
   } satisfies Annotation
 }
@@ -56,7 +52,9 @@ function storageKey(url: string) {
 
 beforeEach(() => {
   for (const key of Object.keys(storage)) delete storage[key]
-  storageGet.mockImplementation(async (key: string) => ({ [key]: storage[key] }))
+  storageGet.mockImplementation(async (key: string) => ({
+    [key]: storage[key],
+  }))
   storageSet.mockImplementation(async (value: StorageRecord) => {
     Object.assign(storage, value)
   })
@@ -75,107 +73,93 @@ beforeEach(() => {
   })
 })
 
-describe("annotation-store", () => {
-  it("saves and loads a store using a normalized URL key", async () => {
-    const store: AnnotationStore = {
-      url: metadata.url,
-      metadata,
-      annotations: [annotation(1)],
-    }
+it("annotation-store: saves and loads a store using a normalized URL key", async () => {
+  const store: AnnotationStore = {
+    url: metadata.url,
+    metadata,
+    annotations: [annotation(1)],
+  }
 
-    await saveAnnotationStore(store)
+  await saveAnnotationStore(store)
 
-    expect(storage[storageKey(metadata.url)]).toEqual(store)
-    await expect(loadAnnotationStore(metadata.url)).resolves.toEqual(store)
-    await expect(loadAnnotationStore("https://example.com/page#other")).resolves.toEqual(
-      store
-    )
+  expect(storage[storageKey(metadata.url)]).toEqual(store)
+  await expect(loadAnnotationStore(metadata.url)).resolves.toEqual(store)
+  await expect(
+    loadAnnotationStore("https://example.com/page#other")
+  ).resolves.toEqual(store)
+})
+
+it("annotation-store: limits saved annotations to the newest 50", async () => {
+  const annotations = Array.from({ length: 55 }, (_, idx) =>
+    annotation(55 - idx)
+  )
+  await saveAnnotationStore({ url: metadata.url, metadata, annotations })
+
+  const saved = storage[storageKey(metadata.url)] as AnnotationStore
+  expect(saved.annotations).toHaveLength(50)
+  expect(saved.annotations[0].id).toBe(6)
+  expect(saved.annotations.at(-1)?.id).toBe(55)
+})
+
+it("annotation-store: updates and clears annotations", async () => {
+  await updateAnnotations(metadata.url, metadata, [annotation(1), annotation(2)])
+
+  const saved = storage[storageKey(metadata.url)] as AnnotationStore
+  expect(saved.annotations.map((item) => item.id)).toEqual([1, 2])
+
+  await clearAllAnnotations(metadata.url)
+  expect(storage[storageKey(metadata.url)]).toBeUndefined()
+})
+
+it("annotation-store: returns null and swallows storage errors", async () => {
+  storageGet.mockRejectedValueOnce(new Error("boom"))
+  storageSet.mockRejectedValueOnce(new Error("boom"))
+  storageRemove.mockRejectedValueOnce(new Error("boom"))
+
+  await expect(loadAnnotationStore("not a url")).resolves.toBeNull()
+  await expect(
+    saveAnnotationStore({ url: "not a url", metadata, annotations: [] })
+  ).resolves.toBeUndefined()
+  await expect(clearAllAnnotations("not a url")).resolves.toBeUndefined()
+})
+
+it("annotation-store: uses the raw URL when URL parsing fails", async () => {
+  const store = {
+    url: "not a url",
+    metadata,
+    annotations: [annotation(1)],
+  }
+
+  await saveAnnotationStore(store)
+
+  expect(storage["tegakariAnnotations:not a url"]).toEqual(store)
+  await expect(loadAnnotationStore("not a url")).resolves.toEqual(store)
+})
+
+it("annotation-store: collects page metadata from browser globals", () => {
+  vi.setSystemTime(12345)
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 800,
+  })
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: 600,
+  })
+  Object.defineProperty(navigator, "language", {
+    configurable: true,
+    value: "ja-JP",
   })
 
-  it("limits saved annotations to the newest 50", async () => {
-    const annotations = Array.from({ length: 55 }, (_, idx) =>
-      annotation(55 - idx)
-    )
-    await saveAnnotationStore({ url: metadata.url, metadata, annotations })
+  const frameworkInfo = { framework: "React", metaFramework: "Next.js" }
+  const collected = collectPageMetadata(frameworkInfo)
 
-    const saved = storage[storageKey(metadata.url)] as AnnotationStore
-    expect(saved.annotations).toHaveLength(50)
-    expect(saved.annotations[0].id).toBe(6)
-    expect(saved.annotations.at(-1)?.id).toBe(55)
-  })
-
-  it("updates, archives, unarchives, and clears annotations", async () => {
-    await updateAnnotations(metadata.url, metadata, [
-      annotation(1),
-      annotation(2, "archived"),
-    ])
-
-    await archiveAnnotation(metadata.url, 1)
-    let saved = storage[storageKey(metadata.url)] as AnnotationStore
-    expect(saved.annotations.map((item) => item.status)).toEqual([
-      "archived",
-      "archived",
-    ])
-
-    await unarchiveAnnotation(metadata.url, 1)
-    saved = storage[storageKey(metadata.url)] as AnnotationStore
-    expect(saved.annotations[0].status).toBe("default")
-
-    await clearArchivedAnnotations(metadata.url)
-    saved = storage[storageKey(metadata.url)] as AnnotationStore
-    expect(saved.annotations.map((item) => item.id)).toEqual([1])
-
-    await clearAllAnnotations(metadata.url)
-    expect(storage[storageKey(metadata.url)]).toBeUndefined()
-  })
-
-  it("returns null and swallows storage errors", async () => {
-    storageGet.mockRejectedValueOnce(new Error("boom"))
-    storageSet.mockRejectedValueOnce(new Error("boom"))
-    storageRemove.mockRejectedValueOnce(new Error("boom"))
-
-    await expect(loadAnnotationStore("not a url")).resolves.toBeNull()
-    await expect(
-      saveAnnotationStore({ url: "not a url", metadata, annotations: [] })
-    ).resolves.toBeUndefined()
-    await expect(clearAllAnnotations("not a url")).resolves.toBeUndefined()
-  })
-
-  it("uses the raw URL when URL parsing fails", async () => {
-    const store = {
-      url: "not a url",
-      metadata,
-      annotations: [annotation(1)],
-    }
-
-    await saveAnnotationStore(store)
-
-    expect(storage["tegakariAnnotations:not a url"]).toEqual(store)
-    await expect(loadAnnotationStore("not a url")).resolves.toEqual(store)
-  })
-
-  it("collects page metadata from browser globals", () => {
-    vi.setSystemTime(12345)
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 800 })
-    Object.defineProperty(window, "innerHeight", {
-      configurable: true,
-      value: 600,
-    })
-    Object.defineProperty(navigator, "language", {
-      configurable: true,
-      value: "ja-JP",
-    })
-
-    const frameworkInfo = { framework: "React", metaFramework: "Next.js" }
-    const collected = collectPageMetadata(frameworkInfo)
-
-    expect(collected).toMatchObject({
-      url: location.href,
-      title: document.title,
-      viewport: { width: 800, height: 600 },
-      language: "ja-JP",
-      timestamp: 12345,
-      frameworkInfo,
-    })
+  expect(collected).toMatchObject({
+    url: location.href,
+    title: document.title,
+    viewport: { width: 800, height: 600 },
+    language: "ja-JP",
+    timestamp: 12345,
+    frameworkInfo,
   })
 })

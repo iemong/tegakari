@@ -51,30 +51,6 @@ export async function updateAnnotations(
   await saveAnnotationStore({ url, metadata, annotations })
 }
 
-export async function archiveAnnotation(
-  url: string,
-  annotationId: number
-): Promise<void> {
-  const store = await loadAnnotationStore(url)
-  if (!store) return
-  store.annotations = store.annotations.map((a) =>
-    a.id === annotationId ? { ...a, status: "archived" as const } : a
-  )
-  await saveAnnotationStore(store)
-}
-
-export async function unarchiveAnnotation(
-  url: string,
-  annotationId: number
-): Promise<void> {
-  const store = await loadAnnotationStore(url)
-  if (!store) return
-  store.annotations = store.annotations.map((a) =>
-    a.id === annotationId ? { ...a, status: "default" as const } : a
-  )
-  await saveAnnotationStore(store)
-}
-
 export async function clearAllAnnotations(url: string): Promise<void> {
   try {
     const key = storageKey(url)
@@ -82,13 +58,6 @@ export async function clearAllAnnotations(url: string): Promise<void> {
   } catch {
     // silently fail
   }
-}
-
-export async function clearArchivedAnnotations(url: string): Promise<void> {
-  const store = await loadAnnotationStore(url)
-  if (!store) return
-  store.annotations = store.annotations.filter((a) => a.status !== "archived")
-  await saveAnnotationStore(store)
 }
 
 export function collectPageMetadata(

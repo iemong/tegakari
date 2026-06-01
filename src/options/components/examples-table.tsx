@@ -11,13 +11,15 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
   return (
     <div
       style={{
-        marginTop: 32,
+        marginTop: 24,
         fontSize: 12,
         color: theme.textMuted,
         lineHeight: 1.8,
-      }}>
+      }}
+    >
       <div
-        style={{ fontWeight: 600, marginBottom: 8, color: theme.textSecondary }}>
+        style={{ fontWeight: 600, marginBottom: 8, color: theme.textSecondary }}
+      >
         Examples
       </div>
       <table style={{ borderCollapse: "collapse", width: "100%" }}>
@@ -28,7 +30,8 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
                 textAlign: "left",
                 padding: "4px 12px 4px 0",
                 color: theme.textSecondary,
-              }}>
+              }}
+            >
               Pattern
             </th>
             <th
@@ -36,7 +39,8 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
                 textAlign: "left",
                 padding: "4px 12px 4px 0",
                 color: theme.textSecondary,
-              }}>
+              }}
+            >
               Type
             </th>
             <th
@@ -44,7 +48,8 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
                 textAlign: "left",
                 padding: "4px 0",
                 color: theme.textSecondary,
-              }}>
+              }}
+            >
               Matches
             </th>
           </tr>
@@ -60,7 +65,8 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
                     borderRadius: 3,
                     fontFamily: theme.fontMono,
                     fontSize: 11,
-                  }}>
+                  }}
+                >
                   {pattern}
                 </code>
               </td>

@@ -68,8 +68,7 @@ export const darkTheme: Theme = {
   activeRowBg: "rgba(37, 99, 235, 0.06)",
   fontFamily:
     '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-  fontMono:
-    '"SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace',
+  fontMono: '"SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace',
 }
 
 export const lightTheme: Theme = {
@@ -100,8 +99,7 @@ export const lightTheme: Theme = {
   activeRowBg: "rgba(29, 78, 216, 0.05)",
   fontFamily:
     '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-  fontMono:
-    '"SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace',
+  fontMono: '"SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace',
 }
 
 export type ThemeMode = "dark" | "light"

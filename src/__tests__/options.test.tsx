@@ -78,8 +78,9 @@ function getAddPatternInput(mode: "host" | "regex"): HTMLInputElement {
  * <label>. Pulling by accessible name is the most robust path.
  */
 function getAddRegexCheckbox(): HTMLInputElement {
-  return screen.getByLabelText(/Regex \(match against full URL\)/i) as
-    HTMLInputElement
+  return screen.getByLabelText(
+    /Regex \(match against full URL\)/i
+  ) as HTMLInputElement
 }
 
 // ---- lifecycle ------------------------------------------------------------
@@ -183,7 +184,9 @@ describe("OptionsPage — regex checkbox on Add form", () => {
     await user.click(getAddRegexCheckbox())
     // user.type interprets "(" / "[" / "{" loosely; use fireEvent.change to
     // set the raw string verbatim.
-    fireEvent.change(getAddPatternInput("regex"), { target: { value: "(unclosed" } })
+    fireEvent.change(getAddPatternInput("regex"), {
+      target: { value: "(unclosed" },
+    })
     fireEvent.change(screen.getByPlaceholderText("[repo=my-app]"), {
       target: { value: "[bad]" },
     })
@@ -259,12 +262,18 @@ describe("OptionsPage — regex checkbox on Edit form", () => {
 
     // Now in edit mode: pattern input is pre-filled. Two checkboxes exist
     // (edit row + Add form); the edit one has the short label "Regex".
-    const editPattern = screen.getByDisplayValue("github.com") as HTMLInputElement
-    const editCheckbox = screen.getByLabelText(/^\s*Regex\s*$/i) as HTMLInputElement
+    const editPattern = screen.getByDisplayValue(
+      "github.com"
+    ) as HTMLInputElement
+    const editCheckbox = screen.getByLabelText(
+      /^\s*Regex\s*$/i
+    ) as HTMLInputElement
     expect(editCheckbox.checked).toBe(false)
 
     // Switch to a valid regex and save.
-    fireEvent.change(editPattern, { target: { value: "^https://github\\.com/" } })
+    fireEvent.change(editPattern, {
+      target: { value: "^https://github\\.com/" },
+    })
     await user.click(editCheckbox)
     await user.click(screen.getByRole("button", { name: /^Save$/i }))
 
@@ -286,7 +295,9 @@ describe("OptionsPage — regex checkbox on Edit form", () => {
 
     await user.click(screen.getByRole("button", { name: /^Edit$/i }))
 
-    const editPattern = screen.getByDisplayValue("^valid\\.com") as HTMLInputElement
+    const editPattern = screen.getByDisplayValue(
+      "^valid\\.com"
+    ) as HTMLInputElement
     fireEvent.change(editPattern, { target: { value: "(broken" } })
     await user.click(screen.getByRole("button", { name: /^Save$/i }))
 
@@ -304,7 +315,9 @@ describe("OptionsPage — regex checkbox on Edit form", () => {
     ])
 
     await user.click(screen.getByRole("button", { name: /^Edit$/i }))
-    const editPattern = screen.getByDisplayValue("github.com") as HTMLInputElement
+    const editPattern = screen.getByDisplayValue(
+      "github.com"
+    ) as HTMLInputElement
     fireEvent.change(editPattern, { target: { value: "something-else.com" } })
     await user.click(screen.getByRole("button", { name: /^Cancel$/i }))
 

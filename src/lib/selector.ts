@@ -18,43 +18,48 @@ export function generateSelector(element: Element): string {
       break
     }
 
-    const tag = current.tagName.toLowerCase()
-    const siblings = Array.from(parent.children)
-
-    // Try class-based selector first
-    if (current.className && typeof current.className === "string") {
-      const classes = current.className.trim().split(/\s+/).filter(Boolean)
-      if (classes.length > 0) {
-        const classSelector =
-          tag + "." + classes.map((c) => CSS.escape(c)).join(".")
-        const matchingSiblings = siblings.filter((s) => {
-          try {
-            return s.matches(classSelector)
-          } catch {
-            return false
-          }
-        })
-        if (matchingSiblings.length === 1) {
-          parts.unshift(classSelector)
-          current = parent
-          continue
-        }
-      }
-    }
-
-    // Fall back to nth-child
-    const sameTagSiblings = siblings.filter(
-      (s) => s.tagName === current!.tagName
-    )
-    if (sameTagSiblings.length > 1) {
-      const index = siblings.indexOf(current) + 1
-      parts.unshift(`${tag}:nth-child(${index})`)
-    } else {
-      parts.unshift(tag)
-    }
-
+    parts.unshift(selectorForChild(current, parent))
     current = parent
   }
 
   return parts.join(" > ")
+}
+
+function selectorForChild(current: Element, parent: Element): string {
+  const tag = current.tagName.toLowerCase()
+  const siblings = Array.from(parent.children)
+
+  // Try class-based selector first
+  const classSelector = uniqueClassSelector(current, tag, siblings)
+  if (classSelector) return classSelector
+
+  // Fall back to nth-child
+  const sameTagSiblings = siblings.filter((s) => s.tagName === current.tagName)
+  if (sameTagSiblings.length > 1) {
+    return `${tag}:nth-child(${siblings.indexOf(current) + 1})`
+  }
+  return tag
+}
+
+function uniqueClassSelector(
+  current: Element,
+  tag: string,
+  siblings: Element[]
+): string | null {
+  if (!current.className || typeof current.className !== "string") return null
+
+  const classes = current.className.trim().split(/\s+/).filter(Boolean)
+  if (classes.length === 0) return null
+
+  const classSelector = `${tag}.${classes.map((c) => CSS.escape(c)).join(".")}`
+  const matchingSiblings = siblings.filter((s) => safeMatches(s, classSelector))
+  return matchingSiblings.length === 1 ? classSelector : null
+}
+
+function safeMatches(element: Element, selector: string): boolean {
+  try {
+    return element.matches(selector)
+  } catch {
+    return false
+  }
 }

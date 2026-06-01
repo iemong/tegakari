@@ -1,7 +1,18 @@
-import { test as base, chromium, type BrowserContext, type Worker } from "@playwright/test"
+import {
+  test as base,
+  chromium,
+  type BrowserContext,
+  type Worker,
+} from "@playwright/test"
 import { resolve } from "node:path"
 
 const EXTENSION_PATH = resolve(__dirname, "../../build/chrome-mv3-prod")
+
+type PrefixRule = {
+  pattern: string
+  prefix: string
+  isRegex?: boolean
+}
 
 type ExtensionFixtures = {
   context: BrowserContext
@@ -13,6 +24,14 @@ type ExtensionFixtures = {
    * inside the Service Worker — equivalent to clicking the toolbar icon.
    */
   activateExtension: () => Promise<void>
+  /**
+   * Replace persisted prefix rules in chrome.storage.local. Use as a fast
+   * seed in tests that need a known starting state without driving the
+   * options UI.
+   */
+  seedPrefixRules: (rules: PrefixRule[]) => Promise<void>
+  /** Read the persisted prefix rules array. */
+  readPrefixRules: () => Promise<PrefixRule[]>
 }
 
 export const test = base.extend<ExtensionFixtures>({
@@ -46,7 +65,10 @@ export const test = base.extend<ExtensionFixtures>({
   activateExtension: async ({ serviceWorker }, use) => {
     const toggle = async () => {
       await serviceWorker.evaluate(async () => {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+        const tabs = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        })
         const tabId = tabs[0]?.id
         if (typeof tabId !== "number") {
           throw new Error("no active tab to toggle")
@@ -55,6 +77,24 @@ export const test = base.extend<ExtensionFixtures>({
       })
     }
     await use(toggle)
+  },
+
+  seedPrefixRules: async ({ serviceWorker }, use) => {
+    const seed = async (rules: PrefixRule[]) => {
+      await serviceWorker.evaluate(async (r) => {
+        await chrome.storage.local.set({ tegakariPrefixRules: r })
+      }, rules)
+    }
+    await use(seed)
+  },
+
+  readPrefixRules: async ({ serviceWorker }, use) => {
+    const read = async () =>
+      serviceWorker.evaluate(async () => {
+        const result = await chrome.storage.local.get("tegakariPrefixRules")
+        return (result.tegakariPrefixRules ?? []) as PrefixRule[]
+      })
+    await use(read)
   },
 })
 
