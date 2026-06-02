@@ -1,0 +1,4 @@
+interface:
+  display_name: 'tegakari Prefix Rules'
+  short_description: 'Generate tegakari URL-to-repository (Prefix Rules) JSON without writing regex.'
+  default_prompt: 'Use $tegakari-prefix-rules to interview me in plain language (which URLs the app runs on, the repository name, whether to split by path) and produce import-ready Prefix Rules JSON. Never ask me to write a regex.'
