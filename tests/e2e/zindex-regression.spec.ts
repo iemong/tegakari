@@ -11,30 +11,29 @@ const FIXTURE_URL =
  * carries the same max z-index, so victory comes down to DOM order — which
  * we cannot rely on.
  *
- * Expectation: click should still route to the settings button. If this spec
- * fails (timeout / hit-test rejection), z-index is the culprit.
+ * Expectation: a real (non-forced) click on a toolbar button should still land
+ * and produce its effect — here, the Inbox button opens the inbox panel. If
+ * this spec fails (timeout / hit-test rejection), z-index is the culprit.
  */
-test.describe("Toolbar settings button under hostile page overlay", () => {
-  test("settings button is clickable even when page has max z-index overlay", async ({
+test.describe("Toolbar under hostile page overlay", () => {
+  test("a toolbar button is clickable even when page has max z-index overlay", async ({
     context,
-    extensionId,
     activateExtension,
   }) => {
     const page = await context.newPage()
     await page.goto(FIXTURE_URL)
     await activateExtension()
 
-    const settings = page.getByTitle("Prefix rules")
-    await expect(settings).toBeVisible()
+    const inbox = page.getByTitle("Inbox", { exact: true })
+    await expect(inbox).toBeVisible()
 
-    const [optionsPage] = await Promise.all([
-      context.waitForEvent("page", { timeout: 5_000 }),
-      // No `force: true` — we want the real hit-test to run so the bug shows up.
-      settings.click(),
-    ])
+    // No `force: true` — we want the real hit-test to run so the bug shows up.
+    await inbox.click()
 
-    await expect(optionsPage).toHaveURL(
-      new RegExp(`^chrome-extension://${extensionId}/options\\.html`)
-    )
+    // Clicking Inbox toggles the inbox panel open; its empty-state copy proves
+    // the click actually landed on the toolbar (not the hostile overlay).
+    await expect(
+      page.getByText("Click elements on the page to annotate")
+    ).toBeVisible()
   })
 })
