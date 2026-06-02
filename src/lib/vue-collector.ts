@@ -1,8 +1,10 @@
+import { safeSerialize } from "./serialize"
 import type { ComponentInfo } from "./types"
 
-export function collectVueComponent(
-  element: Element
-): ComponentInfo | null {
+const skipKey = (key: string) =>
+  key.startsWith("_") || key.startsWith("$") || key.startsWith("__")
+
+export function collectVueComponent(element: Element): ComponentInfo | null {
   // Try Vue 3 first
   const vue3Result = collectVue3(element)
   if (vue3Result) return vue3Result
@@ -20,10 +22,10 @@ function collectVue3(element: Element): ComponentInfo | null {
 
   const hierarchy = getVue3Hierarchy(instance)
   const props = instance.props
-    ? safeSerialize(instance.props)
+    ? safeSerialize(instance.props, skipKey)
     : undefined
   const data = instance.setupState
-    ? safeSerialize(instance.setupState)
+    ? safeSerialize(instance.setupState, skipKey)
     : undefined
 
   return {
@@ -60,12 +62,8 @@ function collectVue2(element: Element): ComponentInfo | null {
   if (!vm) return null
 
   const hierarchy = getVue2Hierarchy(vm)
-  const props = vm.$props
-    ? safeSerialize(vm.$props)
-    : undefined
-  const data = vm.$data
-    ? safeSerialize(vm.$data)
-    : undefined
+  const props = vm.$props ? safeSerialize(vm.$props, skipKey) : undefined
+  const data = vm.$data ? safeSerialize(vm.$data, skipKey) : undefined
 
   return {
     framework: "vue",
@@ -88,37 +86,4 @@ function getVue2Hierarchy(vm: any): string[] {
   }
 
   return components
-}
-
-function safeSerialize(
-  value: unknown,
-  depth = 0,
-  maxDepth = 3,
-  seen = new WeakSet()
-): unknown {
-  if (depth > maxDepth) return "..."
-  if (value === null || value === undefined) return value
-  if (typeof value === "function") return "fn"
-  if (typeof value === "symbol") return value.toString()
-  if (value instanceof HTMLElement)
-    return `<${value.tagName.toLowerCase()}>`
-  if (typeof value !== "object") return value
-
-  const obj = value as object
-  if (seen.has(obj)) return "[Circular]"
-  seen.add(obj)
-
-  if (Array.isArray(value)) {
-    return value
-      .slice(0, 10)
-      .map((v) => safeSerialize(v, depth + 1, maxDepth, seen))
-  }
-
-  const result: Record<string, unknown> = {}
-  const entries = Object.entries(value as Record<string, unknown>)
-  for (const [key, val] of entries.slice(0, 20)) {
-    if (key.startsWith("_") || key.startsWith("$") || key.startsWith("__")) continue
-    result[key] = safeSerialize(val, depth + 1, maxDepth, seen)
-  }
-  return result
 }

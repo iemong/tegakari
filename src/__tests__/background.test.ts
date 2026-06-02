@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { it, expect, vi, beforeEach } from "vitest"
 
 const mockSendMessage = vi.fn()
 const mockCaptureVisibleTab = vi.fn()
@@ -26,112 +26,112 @@ vi.stubGlobal("chrome", {
   },
 })
 
-describe("background", () => {
-  beforeEach(async () => {
-    vi.resetModules()
-    mockSendMessage.mockReset()
-    mockCaptureVisibleTab.mockReset()
-    mockTabsCreate.mockReset()
-    mockGetURL.mockClear()
-    onClickedListeners.length = 0
-    onMessageListeners.length = 0
-    // @ts-expect-error background.ts is a side-effect-only script, not a module
-    await import("../background")
+beforeEach(async () => {
+  vi.resetModules()
+  mockSendMessage.mockReset()
+  mockCaptureVisibleTab.mockReset()
+  mockTabsCreate.mockReset()
+  mockGetURL.mockClear()
+  onClickedListeners.length = 0
+  onMessageListeners.length = 0
+  // @ts-expect-error background.ts is a side-effect-only script, not a module
+  await import("../background")
+})
+
+it("background: should register action.onClicked listener", () => {
+  expect(onClickedListeners).toHaveLength(1)
+})
+
+it("background: should send TEGAKARI_TOGGLE message on click with valid tab id", async () => {
+  const listener = onClickedListeners[0]
+  await listener({ id: 42 })
+  expect(mockSendMessage).toHaveBeenCalledWith(42, {
+    type: "TEGAKARI_TOGGLE",
   })
+})
 
-  it("should register action.onClicked listener", () => {
-    expect(onClickedListeners).toHaveLength(1)
-  })
+it("background: should not send message when tab has no id", async () => {
+  const listener = onClickedListeners[0]
+  await listener({})
+  expect(mockSendMessage).not.toHaveBeenCalled()
+})
 
-  it("should send TEGAKARI_TOGGLE message on click with valid tab id", async () => {
-    const listener = onClickedListeners[0]
-    await listener({ id: 42 })
-    expect(mockSendMessage).toHaveBeenCalledWith(42, { type: "TEGAKARI_TOGGLE" })
-  })
+it("background: should register runtime.onMessage listener", () => {
+  expect(onMessageListeners).toHaveLength(1)
+})
 
-  it("should not send message when tab has no id", async () => {
-    const listener = onClickedListeners[0]
-    await listener({})
-    expect(mockSendMessage).not.toHaveBeenCalled()
-  })
+it("background: should capture visible tab on TEGAKARI_CAPTURE", () => {
+  const listener = onMessageListeners[0]
+  const sendResponse = vi.fn()
+  mockCaptureVisibleTab.mockResolvedValue("data:image/png;base64,abc")
 
-  it("should register runtime.onMessage listener", () => {
-    expect(onMessageListeners).toHaveLength(1)
-  })
+  const result = listener({ type: "TEGAKARI_CAPTURE" }, {}, sendResponse)
 
-  it("should capture visible tab on TEGAKARI_CAPTURE", () => {
-    const listener = onMessageListeners[0]
-    const sendResponse = vi.fn()
-    mockCaptureVisibleTab.mockResolvedValue("data:image/png;base64,abc")
+  expect(result).toBe(true)
+  expect(mockCaptureVisibleTab).toHaveBeenCalledWith({ format: "png" })
+})
 
-    const result = listener({ type: "TEGAKARI_CAPTURE" }, {}, sendResponse)
+it("background: should call sendResponse with success on capture", async () => {
+  const listener = onMessageListeners[0]
+  const sendResponse = vi.fn()
+  mockCaptureVisibleTab.mockResolvedValue("data:image/png;base64,abc")
 
-    expect(result).toBe(true)
-    expect(mockCaptureVisibleTab).toHaveBeenCalledWith({ format: "png" })
-  })
+  listener({ type: "TEGAKARI_CAPTURE" }, {}, sendResponse)
 
-  it("should call sendResponse with success on capture", async () => {
-    const listener = onMessageListeners[0]
-    const sendResponse = vi.fn()
-    mockCaptureVisibleTab.mockResolvedValue("data:image/png;base64,abc")
-
-    listener({ type: "TEGAKARI_CAPTURE" }, {}, sendResponse)
-
-    await vi.waitFor(() => {
-      expect(sendResponse).toHaveBeenCalledWith({
-        success: true,
-        dataUrl: "data:image/png;base64,abc",
-      })
+  await vi.waitFor(() => {
+    expect(sendResponse).toHaveBeenCalledWith({
+      success: true,
+      dataUrl: "data:image/png;base64,abc",
     })
   })
+})
 
-  it("should call sendResponse with error on capture failure", async () => {
-    const listener = onMessageListeners[0]
-    const sendResponse = vi.fn()
-    mockCaptureVisibleTab.mockRejectedValue(new Error("Capture failed"))
+it("background: should call sendResponse with error on capture failure", async () => {
+  const listener = onMessageListeners[0]
+  const sendResponse = vi.fn()
+  mockCaptureVisibleTab.mockRejectedValue(new Error("Capture failed"))
 
-    listener({ type: "TEGAKARI_CAPTURE" }, {}, sendResponse)
+  listener({ type: "TEGAKARI_CAPTURE" }, {}, sendResponse)
 
-    await vi.waitFor(() => {
-      expect(sendResponse).toHaveBeenCalledWith({
-        success: false,
-        error: "Error: Capture failed",
-      })
+  await vi.waitFor(() => {
+    expect(sendResponse).toHaveBeenCalledWith({
+      success: false,
+      error: "Error: Capture failed",
     })
   })
+})
 
-  it("should not handle non-TEGAKARI_CAPTURE messages", () => {
-    const listener = onMessageListeners[0]
-    const sendResponse = vi.fn()
+it("background: should not handle non-TEGAKARI_CAPTURE messages", () => {
+  const listener = onMessageListeners[0]
+  const sendResponse = vi.fn()
 
-    const result = listener({ type: "OTHER_MESSAGE" }, {}, sendResponse)
+  const result = listener({ type: "OTHER_MESSAGE" }, {}, sendResponse)
 
-    expect(result).toBeUndefined()
-    expect(mockCaptureVisibleTab).not.toHaveBeenCalled()
-  })
+  expect(result).toBeUndefined()
+  expect(mockCaptureVisibleTab).not.toHaveBeenCalled()
+})
 
-  it("should not handle null messages", () => {
-    const listener = onMessageListeners[0]
-    const sendResponse = vi.fn()
+it("background: should not handle null messages", () => {
+  const listener = onMessageListeners[0]
+  const sendResponse = vi.fn()
 
-    const result = listener(null, {}, sendResponse)
+  const result = listener(null, {}, sendResponse)
 
-    expect(result).toBeUndefined()
-    expect(mockCaptureVisibleTab).not.toHaveBeenCalled()
-  })
+  expect(result).toBeUndefined()
+  expect(mockCaptureVisibleTab).not.toHaveBeenCalled()
+})
 
-  it("should open the options page as a new tab on TEGAKARI_OPEN_OPTIONS", () => {
-    const listener = onMessageListeners[0]
-    const sendResponse = vi.fn()
+it("background: should open the options page as a new tab on TEGAKARI_OPEN_OPTIONS", () => {
+  const listener = onMessageListeners[0]
+  const sendResponse = vi.fn()
 
-    // We use chrome.tabs.create instead of chrome.runtime.openOptionsPage
-    // because the latter silently no-ops in some Chromium derivatives (Arc).
-    const result = listener({ type: "TEGAKARI_OPEN_OPTIONS" }, {}, sendResponse)
+  // We use chrome.tabs.create instead of chrome.runtime.openOptionsPage
+  // because the latter silently no-ops in some Chromium derivatives (Arc).
+  const result = listener({ type: "TEGAKARI_OPEN_OPTIONS" }, {}, sendResponse)
 
-    expect(result).toBe(false)
-    expect(mockGetURL).toHaveBeenCalledWith("options.html")
-    expect(mockTabsCreate).toHaveBeenCalledWith({
-      url: "chrome-extension://test-id/options.html",
-    })
+  expect(result).toBe(false)
+  expect(mockGetURL).toHaveBeenCalledWith("options.html")
+  expect(mockTabsCreate).toHaveBeenCalledWith({
+    url: "chrome-extension://test-id/options.html",
   })
 })

@@ -26,11 +26,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # NOTE: biome lint/format is intentionally NOT run here. The existing
-      # codebase has unresolved complexity-rule violations (noExcessiveLines*,
-      # noExcessiveCognitiveComplexity) that require manual refactoring, and
-      # lefthook (pre-commit) does not enforce lint either. Adding lint to CI is
-      # tracked as separate work; see the "lint backlog" follow-up.
+      - name: Lint (biome)
+        run: pnpm lint
+
       - name: Typecheck
         run: pnpm tsc --noEmit
 

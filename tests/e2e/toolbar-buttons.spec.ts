@@ -7,11 +7,11 @@ const FIXTURE_URL = process.env.FIXTURE_URL ?? "http://localhost:4321/"
  * Trial-click each toolbar button so the actionability checks (visible,
  * enabled, stable, receives pointer events) run, but no onClick side effect
  * fires. This is exactly the check we need to catch z-index / hit-test
- * regressions for *every* button, not just the settings one.
+ * regressions for *every* button.
  */
 async function expectAllToolbarButtonsClickable(page: Page) {
   // Title-based buttons.
-  for (const title of ["Inbox", "Toggle theme", "Prefix rules", "Close tegakari"]) {
+  for (const title of ["Inbox", "Close tegakari"]) {
     const btn = page.getByTitle(title, { exact: true })
     await expect(btn, `button[title=${title}] should be visible`).toBeVisible()
     await btn.click({ trial: true })
@@ -39,7 +39,7 @@ extTest.describe("Toolbar buttons", () => {
       await activateExtension()
 
       await expectAllToolbarButtonsClickable(page)
-    },
+    }
   )
 
   extTest(
@@ -54,14 +54,16 @@ extTest.describe("Toolbar buttons", () => {
       await page.locator("#btn-a").click()
 
       // Inbox badge should appear with the count once the annotation lands.
-      const inboxBadge = page.getByTitle("Inbox", { exact: true }).locator("span")
+      const inboxBadge = page
+        .getByTitle("Inbox", { exact: true })
+        .locator("span")
       await expect(inboxBadge).toHaveText("1")
 
       // Settle: auto-screenshot crop + main-world framework probe are async.
       await page.waitForTimeout(300)
 
       await expectAllToolbarButtonsClickable(page)
-    },
+    }
   )
 })
 

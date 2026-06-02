@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { it, expect, vi, beforeEach, afterEach } from "vitest"
 
 vi.mock("~lib/framework-detector", () => ({
   detectFramework: vi.fn(),
@@ -22,173 +22,169 @@ function createMessageEvent(data: unknown, fromWindow = true): MessageEvent {
   return event
 }
 
-describe("main-world message handler", () => {
-  let messageHandler: (event: MessageEvent) => void
-  const postMessageSpy = vi.fn()
+let messageHandler: (event: MessageEvent) => void
+const postMessageSpy = vi.fn()
 
-  beforeEach(async () => {
-    vi.resetModules()
-    vi.mocked(detectFramework).mockReset()
-    vi.mocked(collectReactComponent).mockReset()
-    vi.mocked(collectVueComponent).mockReset()
-    postMessageSpy.mockReset()
+beforeEach(async () => {
+  vi.resetModules()
+  vi.mocked(detectFramework).mockReset()
+  vi.mocked(collectReactComponent).mockReset()
+  vi.mocked(collectVueComponent).mockReset()
+  postMessageSpy.mockReset()
 
-    const originalPostMessage = window.postMessage.bind(window)
-    window.postMessage = postMessageSpy
+  const originalPostMessage = window.postMessage.bind(window)
+  window.postMessage = postMessageSpy
 
-    const addEventListenerSpy = vi.spyOn(window, "addEventListener")
+  const addEventListenerSpy = vi.spyOn(window, "addEventListener")
 
-    const module = await import("../main-world")
-    expect(module.config).toEqual({
-      matches: ["<all_urls>"],
-      world: "MAIN",
-    })
-
-    const call = addEventListenerSpy.mock.calls.find(
-      (c) => c[0] === "message"
-    )
-    messageHandler = call![1] as any
-
-    addEventListenerSpy.mockRestore()
+  const module = await import("../main-world")
+  expect(module.config).toEqual({
+    matches: ["<all_urls>"],
+    world: "MAIN",
   })
 
-  afterEach(() => {
-    vi.restoreAllMocks()
+  const call = addEventListenerSpy.mock.calls.find((c) => c[0] === "message")
+  messageHandler = call![1] as any
+
+  addEventListenerSpy.mockRestore()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
+it("main-world: should ignore events not from window", () => {
+  const event = createMessageEvent(
+    { type: "TEGAKARI_COLLECT", selector: "#app" },
+    false
+  )
+
+  messageHandler(event)
+
+  expect(postMessageSpy).not.toHaveBeenCalled()
+})
+
+it("main-world: should ignore events with wrong type", () => {
+  const event = createMessageEvent({ type: "OTHER_TYPE" })
+
+  messageHandler(event)
+
+  expect(postMessageSpy).not.toHaveBeenCalled()
+})
+
+it("main-world: should handle TEGAKARI_COLLECT with React framework", () => {
+  document.body.innerHTML = '<div id="app"></div>'
+  vi.mocked(detectFramework).mockReturnValue({
+    framework: "React",
+    metaFramework: null,
+  })
+  vi.mocked(collectReactComponent).mockReturnValue({
+    framework: "react",
+    hierarchy: ["App"],
+    props: { title: "Test" },
   })
 
-  it("should ignore events not from window", () => {
-    const event = createMessageEvent(
-      { type: "TEGAKARI_COLLECT", selector: "#app" },
-      false
-    )
-
-    messageHandler(event)
-
-    expect(postMessageSpy).not.toHaveBeenCalled()
+  const event = createMessageEvent({
+    type: "TEGAKARI_COLLECT",
+    selector: "#app",
   })
 
-  it("should ignore events with wrong type", () => {
-    const event = createMessageEvent({ type: "OTHER_TYPE" })
+  messageHandler(event)
 
-    messageHandler(event)
-
-    expect(postMessageSpy).not.toHaveBeenCalled()
-  })
-
-  it("should handle TEGAKARI_COLLECT with React framework", () => {
-    document.body.innerHTML = '<div id="app"></div>'
-    vi.mocked(detectFramework).mockReturnValue({
-      framework: "React",
-      metaFramework: null,
-    })
-    vi.mocked(collectReactComponent).mockReturnValue({
-      framework: "react",
-      hierarchy: ["App"],
-      props: { title: "Test" },
-    })
-
-    const event = createMessageEvent({
-      type: "TEGAKARI_COLLECT",
-      selector: "#app",
-    })
-
-    messageHandler(event)
-
-    expect(collectReactComponent).toHaveBeenCalled()
-    expect(postMessageSpy).toHaveBeenCalledWith(
-      {
-        type: "TEGAKARI_RESULT",
-        framework: { framework: "React", metaFramework: null },
-        component: {
-          framework: "react",
-          hierarchy: ["App"],
-          props: { title: "Test" },
-        },
+  expect(collectReactComponent).toHaveBeenCalled()
+  expect(postMessageSpy).toHaveBeenCalledWith(
+    {
+      type: "TEGAKARI_RESULT",
+      framework: { framework: "React", metaFramework: null },
+      component: {
+        framework: "react",
+        hierarchy: ["App"],
+        props: { title: "Test" },
       },
-      "*"
-    )
+    },
+    "*"
+  )
+})
+
+it("main-world: should handle TEGAKARI_COLLECT with Vue framework", () => {
+  document.body.innerHTML = '<div id="app"></div>'
+  vi.mocked(detectFramework).mockReturnValue({
+    framework: "Vue",
+    metaFramework: null,
+  })
+  vi.mocked(collectVueComponent).mockReturnValue({
+    framework: "vue",
+    hierarchy: ["App"],
   })
 
-  it("should handle TEGAKARI_COLLECT with Vue framework", () => {
-    document.body.innerHTML = '<div id="app"></div>'
-    vi.mocked(detectFramework).mockReturnValue({
-      framework: "Vue",
-      metaFramework: null,
-    })
-    vi.mocked(collectVueComponent).mockReturnValue({
-      framework: "vue",
-      hierarchy: ["App"],
-    })
-
-    const event = createMessageEvent({
-      type: "TEGAKARI_COLLECT",
-      selector: "#app",
-    })
-
-    messageHandler(event)
-
-    expect(collectVueComponent).toHaveBeenCalled()
-    expect(postMessageSpy).toHaveBeenCalledWith(
-      {
-        type: "TEGAKARI_RESULT",
-        framework: { framework: "Vue", metaFramework: null },
-        component: { framework: "vue", hierarchy: ["App"] },
-      },
-      "*"
-    )
+  const event = createMessageEvent({
+    type: "TEGAKARI_COLLECT",
+    selector: "#app",
   })
 
-  it("should handle TEGAKARI_COLLECT with no framework", () => {
-    document.body.innerHTML = '<div id="app"></div>'
-    vi.mocked(detectFramework).mockReturnValue(null)
+  messageHandler(event)
 
-    const event = createMessageEvent({
-      type: "TEGAKARI_COLLECT",
-      selector: "#app",
-    })
+  expect(collectVueComponent).toHaveBeenCalled()
+  expect(postMessageSpy).toHaveBeenCalledWith(
+    {
+      type: "TEGAKARI_RESULT",
+      framework: { framework: "Vue", metaFramework: null },
+      component: { framework: "vue", hierarchy: ["App"] },
+    },
+    "*"
+  )
+})
 
-    messageHandler(event)
+it("main-world: should handle TEGAKARI_COLLECT with no framework", () => {
+  document.body.innerHTML = '<div id="app"></div>'
+  vi.mocked(detectFramework).mockReturnValue(null)
 
-    expect(postMessageSpy).toHaveBeenCalledWith(
-      {
-        type: "TEGAKARI_RESULT",
-        framework: null,
-        component: null,
-      },
-      "*"
-    )
+  const event = createMessageEvent({
+    type: "TEGAKARI_COLLECT",
+    selector: "#app",
   })
 
-  it("should handle TEGAKARI_COLLECT when element not found", () => {
-    document.body.innerHTML = ""
-    vi.mocked(detectFramework).mockReturnValue({
-      framework: "React",
-      metaFramework: null,
-    })
+  messageHandler(event)
 
-    const event = createMessageEvent({
-      type: "TEGAKARI_COLLECT",
-      selector: "#nonexistent",
-    })
+  expect(postMessageSpy).toHaveBeenCalledWith(
+    {
+      type: "TEGAKARI_RESULT",
+      framework: null,
+      component: null,
+    },
+    "*"
+  )
+})
 
-    messageHandler(event)
-
-    expect(collectReactComponent).not.toHaveBeenCalled()
-    expect(postMessageSpy).toHaveBeenCalledWith(
-      {
-        type: "TEGAKARI_RESULT",
-        framework: { framework: "React", metaFramework: null },
-        component: null,
-      },
-      "*"
-    )
+it("main-world: should handle TEGAKARI_COLLECT when element not found", () => {
+  document.body.innerHTML = ""
+  vi.mocked(detectFramework).mockReturnValue({
+    framework: "React",
+    metaFramework: null,
   })
 
-  it("should ignore events with undefined data", () => {
-    const event = createMessageEvent(undefined)
-
-    messageHandler(event)
-
-    expect(postMessageSpy).not.toHaveBeenCalled()
+  const event = createMessageEvent({
+    type: "TEGAKARI_COLLECT",
+    selector: "#nonexistent",
   })
+
+  messageHandler(event)
+
+  expect(collectReactComponent).not.toHaveBeenCalled()
+  expect(postMessageSpy).toHaveBeenCalledWith(
+    {
+      type: "TEGAKARI_RESULT",
+      framework: { framework: "React", metaFramework: null },
+      component: null,
+    },
+    "*"
+  )
+})
+
+it("main-world: should ignore events with undefined data", () => {
+  const event = createMessageEvent(undefined)
+
+  messageHandler(event)
+
+  expect(postMessageSpy).not.toHaveBeenCalled()
 })

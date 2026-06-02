@@ -28,33 +28,19 @@ export function AddRuleForm({
   const handleEnter = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") onAdd()
   }
+  const s = formStyles(theme)
+  const patternPlaceholder = draft.isRegex
+    ? "https?://example\\.com/.*"
+    : "example.com  (URLを貼ってもOK)"
 
   return (
-    <div
-      style={{
-        backgroundColor: theme.surface,
-        border: `1px solid ${theme.border}`,
-        borderRadius: 10,
-        padding: "16px",
-      }}>
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: theme.textPrimary,
-          marginBottom: 12,
-        }}>
-        Add Rule
-      </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+    <div style={s.card}>
+      <div style={s.title}>Add Rule</div>
+      <div style={s.row}>
         <input
           value={draft.pattern}
           onChange={(event) => onChange({ pattern: event.target.value })}
-          placeholder={
-            draft.isRegex
-              ? "https?://example\\.com/.*"
-              : "example.com  (URLを貼ってもOK)"
-          }
+          placeholder={patternPlaceholder}
           style={inputStyle({ flex: 1 })}
           onKeyDown={handleEnter}
         />
@@ -66,21 +52,8 @@ export function AddRuleForm({
           onKeyDown={handleEnter}
         />
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: theme.textMuted,
-            cursor: "pointer",
-          }}>
+      <div style={s.footer}>
+        <label style={s.label}>
           <input
             type="checkbox"
             checked={draft.isRegex}
@@ -89,15 +62,45 @@ export function AddRuleForm({
           />
           Regex (match against full URL)
         </label>
-        <button onClick={onAdd} style={buttonStyle(theme.accent, theme.accentText)}>
+        <button
+          onClick={onAdd}
+          style={buttonStyle(theme.accent, theme.accentText)}>
           Add
         </button>
       </div>
-      {draft.error && (
-        <div style={{ fontSize: 12, color: theme.danger, marginTop: 8 }}>
-          {draft.error}
-        </div>
-      )}
+      {draft.error && <div style={s.error}>{draft.error}</div>}
     </div>
   )
+}
+
+function formStyles(theme: Theme): Record<string, CSSProperties> {
+  return {
+    card: {
+      backgroundColor: theme.surface,
+      border: `1px solid ${theme.border}`,
+      borderRadius: 10,
+      padding: "16px",
+    },
+    title: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: theme.textPrimary,
+      marginBottom: 12,
+    },
+    row: { display: "flex", gap: 8, marginBottom: 8 },
+    footer: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    label: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 12,
+      color: theme.textMuted,
+      cursor: "pointer",
+    },
+    error: { fontSize: 12, color: theme.danger, marginTop: 8 },
+  }
 }

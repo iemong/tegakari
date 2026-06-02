@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import {
   deletePrefixRule,
   loadPrefixRules,
+  mergeRules,
   normalizePattern,
   savePrefixRules,
   validateRegex,
@@ -41,15 +42,25 @@ function buildRule(
   return { pattern, prefix, isRegex: draft.isRegex }
 }
 
-export function usePrefixRulesManager() {
+type Persist = (next: PrefixRule[]) => Promise<void>
+
+function useRulesState() {
   const [rules, setRules] = useState<PrefixRule[]>([])
-  const [addDraft, setAddDraft] = useState<RuleDraft>(EMPTY_DRAFT)
-  const [editingIdx, setEditingIdx] = useState<number | null>(null)
-  const [editDraft, setEditDraft] = useState<RuleDraft>(EMPTY_DRAFT)
 
   useEffect(() => {
     loadPrefixRules().then(setRules)
   }, [])
+
+  const persist = useCallback<Persist>(async (next) => {
+    await savePrefixRules(next)
+    setRules(next)
+  }, [])
+
+  return { rules, setRules, persist }
+}
+
+function useAddRule(rules: PrefixRule[], persist: Persist) {
+  const [addDraft, setAddDraft] = useState<RuleDraft>(EMPTY_DRAFT)
 
   const updateAddDraft = useCallback((patch: Partial<RuleDraft>) => {
     setAddDraft((draft) => ({ ...draft, ...patch, error: "" }))
@@ -61,7 +72,6 @@ export function usePrefixRulesManager() {
       setAddDraft((draft) => ({ ...draft, error: rule }))
       return
     }
-
     if (rules.some((current) => current.pattern === rule.pattern)) {
       setAddDraft((draft) => ({
         ...draft,
@@ -69,20 +79,16 @@ export function usePrefixRulesManager() {
       }))
       return
     }
-
-    const updated = [...rules, rule]
-    await savePrefixRules(updated)
-    setRules(updated)
+    await persist([...rules, rule])
     setAddDraft(EMPTY_DRAFT)
-  }, [addDraft, rules])
+  }, [addDraft, rules, persist])
 
-  const deleteRule = useCallback(
-    async (pattern: string) => {
-      await deletePrefixRule(pattern)
-      setRules(rules.filter((rule) => rule.pattern !== pattern))
-    },
-    [rules]
-  )
+  return { addDraft, updateAddDraft, addRule }
+}
+
+function useEditRule(rules: PrefixRule[], persist: Persist) {
+  const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [editDraft, setEditDraft] = useState<RuleDraft>(EMPTY_DRAFT)
 
   const startEdit = useCallback(
     (idx: number) => {
@@ -124,16 +130,48 @@ export function usePrefixRulesManager() {
 
     const updated = [...rules]
     updated[editingIdx] = rule
-    await savePrefixRules(updated)
-    setRules(updated)
+    await persist(updated)
     setEditingIdx(null)
     setEditDraft(EMPTY_DRAFT)
-  }, [editingIdx, editDraft, rules])
+  }, [editingIdx, editDraft, rules, persist])
 
   const cancelEdit = useCallback(() => {
     setEditingIdx(null)
     setEditDraft(EMPTY_DRAFT)
   }, [])
+
+  return {
+    editingIdx,
+    setEditingIdx,
+    editDraft,
+    startEdit,
+    updateEditDraft,
+    saveEdit,
+    cancelEdit,
+  }
+}
+
+export function usePrefixRulesManager() {
+  const { rules, setRules, persist } = useRulesState()
+  const add = useAddRule(rules, persist)
+  const edit = useEditRule(rules, persist)
+
+  const deleteRule = useCallback(
+    async (pattern: string) => {
+      await deletePrefixRule(pattern)
+      setRules((current) => current.filter((rule) => rule.pattern !== pattern))
+    },
+    [setRules]
+  )
+
+  const importRules = useCallback(
+    async (imported: PrefixRule[]) => {
+      const merged = mergeRules(rules, imported)
+      await persist(merged)
+      return merged
+    },
+    [rules, persist]
+  )
 
   const reorderRule = useCallback(
     async (idx: number, direction: "up" | "down") => {
@@ -142,27 +180,27 @@ export function usePrefixRulesManager() {
 
       const updated = [...rules]
       ;[updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]]
-      await savePrefixRules(updated)
-      setRules(updated)
+      await persist(updated)
 
-      if (editingIdx === idx) setEditingIdx(newIdx)
-      else if (editingIdx === newIdx) setEditingIdx(idx)
+      if (edit.editingIdx === idx) edit.setEditingIdx(newIdx)
+      else if (edit.editingIdx === newIdx) edit.setEditingIdx(idx)
     },
-    [rules, editingIdx]
+    [rules, persist, edit]
   )
 
   return {
     rules,
-    addDraft,
-    editingIdx,
-    editDraft,
-    updateAddDraft,
-    addRule,
+    addDraft: add.addDraft,
+    editingIdx: edit.editingIdx,
+    editDraft: edit.editDraft,
+    updateAddDraft: add.updateAddDraft,
+    addRule: add.addRule,
     deleteRule,
-    startEdit,
-    updateEditDraft,
-    saveEdit,
-    cancelEdit,
+    startEdit: edit.startEdit,
+    updateEditDraft: edit.updateEditDraft,
+    saveEdit: edit.saveEdit,
+    cancelEdit: edit.cancelEdit,
     reorderRule,
+    importRules,
   }
 }

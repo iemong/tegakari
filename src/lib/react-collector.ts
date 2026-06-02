@@ -1,4 +1,7 @@
+import { safeSerialize } from "./serialize"
 import type { ComponentInfo } from "./types"
+
+const skipKey = (key: string) => key.startsWith("_") || key.startsWith("$$")
 
 interface FiberNode {
   tag: number
@@ -11,9 +14,7 @@ interface FiberNode {
   sibling: FiberNode | null
 }
 
-export function collectReactComponent(
-  element: Element
-): ComponentInfo | null {
+export function collectReactComponent(element: Element): ComponentInfo | null {
   const fiber = getFiber(element)
   if (!fiber) return null
 
@@ -22,7 +23,7 @@ export function collectReactComponent(
 
   // nearestComponent is guaranteed non-null when hierarchy is non-empty
   const component = nearestComponent!
-  const props = safeSerialize(component.memoizedProps)
+  const props = safeSerialize(component.memoizedProps, skipKey)
   const state = extractState(component)
 
   return {
@@ -80,63 +81,41 @@ function getComponentName(fiber: FiberNode): string | null {
 function extractState(fiber: FiberNode): Record<string, unknown> | null {
   // Class component
   if (fiber.tag === 1 && fiber.stateNode?.state) {
-    return safeSerialize(fiber.stateNode.state) as Record<string, unknown>
+    return safeSerialize(fiber.stateNode.state, skipKey) as Record<
+      string,
+      unknown
+    >
   }
 
   // Function component (hooks)
-  if ((fiber.tag === 0 || fiber.tag === 11 || fiber.tag === 15) && fiber.memoizedState) {
-    const states: unknown[] = []
-    let hook = fiber.memoizedState
-
-    while (hook) {
-      // useState/useReducer hooks have a queue property
-      if (hook.queue !== null && hook.queue !== undefined) {
-        states.push(hook.memoizedState)
-      }
-      hook = hook.next
-    }
-
-    if (states.length === 0) return null
-
-    const result: Record<string, unknown> = {}
-    states.forEach((s, i) => {
-      result[`state_${i}`] = safeSerialize(s)
-    })
-    return result
+  if (isFunctionFiber(fiber.tag) && fiber.memoizedState) {
+    return extractHookState(fiber.memoizedState)
   }
 
   return null
 }
 
-function safeSerialize(
-  value: unknown,
-  depth = 0,
-  maxDepth = 3,
-  seen = new WeakSet()
-): unknown {
-  if (depth > maxDepth) return "..."
-  if (value === null || value === undefined) return value
-  if (typeof value === "function") return "fn"
-  if (typeof value === "symbol") return value.toString()
-  if (value instanceof HTMLElement)
-    return `<${value.tagName.toLowerCase()}>`
-  if (typeof value !== "object") return value
+function isFunctionFiber(tag: number): boolean {
+  return tag === 0 || tag === 11 || tag === 15
+}
 
-  const obj = value as object
-  if (seen.has(obj)) return "[Circular]"
-  seen.add(obj)
+function extractHookState(firstHook: any): Record<string, unknown> | null {
+  const states: unknown[] = []
+  let hook = firstHook
 
-  if (Array.isArray(value)) {
-    return value
-      .slice(0, 10)
-      .map((v) => safeSerialize(v, depth + 1, maxDepth, seen))
+  while (hook) {
+    // useState/useReducer hooks have a queue property
+    if (hook.queue !== null && hook.queue !== undefined) {
+      states.push(hook.memoizedState)
+    }
+    hook = hook.next
   }
+
+  if (states.length === 0) return null
 
   const result: Record<string, unknown> = {}
-  const entries = Object.entries(value as Record<string, unknown>)
-  for (const [key, val] of entries.slice(0, 20)) {
-    if (key.startsWith("_") || key.startsWith("$$")) continue
-    result[key] = safeSerialize(val, depth + 1, maxDepth, seen)
-  }
+  states.forEach((s, i) => {
+    result[`state_${i}`] = safeSerialize(s, skipKey)
+  })
   return result
 }

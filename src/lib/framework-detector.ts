@@ -41,7 +41,8 @@ function detectMetaFramework(): string | null {
 function detectNextJs(): string | null {
   try {
     if (win.__NEXT_DATA__) return "Next.js (Pages Router)"
-    if (win.__next_f || win.__next_router_prefetch_for) return "Next.js (App Router)"
+    if (win.__next_f || win.__next_router_prefetch_for)
+      return "Next.js (App Router)"
 
     const hasNextRoot = !!document.getElementById("__next")
     const hasNextScript = !!document.querySelector('script[src*="/_next/"]')
@@ -55,7 +56,11 @@ function detectNextJs(): string | null {
 function detectNuxt(): string | null {
   try {
     if (win.__NUXT__ || win.__NUXT_DATA__) return "Nuxt"
-    if (document.getElementById("__nuxt") || document.getElementById("__layout")) return "Nuxt"
+    if (
+      document.getElementById("__nuxt") ||
+      document.getElementById("__layout")
+    )
+      return "Nuxt"
   } catch {
     // ignore
   }

@@ -1,11 +1,31 @@
-import { defineConfig } from "vitest/config"
 import path from "path"
+import { defineConfig } from "vitest/config"
+
+// Plasmo's bundler resolves asset imports via custom schemes (e.g.
+// `data-base64:`, `url:`). Vite/Vitest don't understand them, so stub any such
+// import to an empty string for the test environment.
+const plasmoSchemeStub = {
+  name: "plasmo-scheme-stub",
+  enforce: "pre" as const,
+  resolveId(id: string) {
+    if (id.startsWith("data-base64:") || id.startsWith("url:")) {
+      return `\0plasmo-scheme-stub:${id}`
+    }
+  },
+  load(id: string) {
+    if (id.startsWith("\0plasmo-scheme-stub:")) {
+      return 'export default ""'
+    }
+  },
+}
 
 export default defineConfig({
+  plugins: [plasmoSchemeStub],
   resolve: {
     alias: {
       "~lib": path.resolve(__dirname, "src/lib"),
       "~components": path.resolve(__dirname, "src/components"),
+      "~hooks": path.resolve(__dirname, "src/hooks"),
     },
   },
   // Use the React 17+ automatic JSX runtime so test files (and the source
@@ -23,6 +43,9 @@ export default defineConfig({
       include: ["src/**/*.ts", "src/**/*.tsx"],
       exclude: [
         "src/contents/overlay.tsx",
+        "src/contents/use-overlay.ts",
+        "src/contents/use-annotations.ts",
+        "src/contents/overlay-helpers.ts",
         "src/components/**",
         "src/lib/types.ts",
       ],

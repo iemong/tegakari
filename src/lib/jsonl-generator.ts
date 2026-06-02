@@ -1,14 +1,19 @@
-import type { BatchInput, MarkdownInput } from "./types"
+import type {
+  BatchInput,
+  ComponentInfo,
+  ElementInfo,
+  FrameworkInfo,
+  MarkdownInput,
+} from "./types"
 
 export function generateJsonl(input: MarkdownInput): string {
   const lines: string[] = []
 
   // 1. User Instruction
   if (input.instruction.trim()) {
-    lines.push(JSON.stringify({
-      type: "instruction",
-      content: input.instruction.trim(),
-    }))
+    lines.push(
+      JSON.stringify({ type: "instruction", content: input.instruction.trim() })
+    )
   }
 
   // 2. Page Context
@@ -17,47 +22,25 @@ export function generateJsonl(input: MarkdownInput): string {
     url: input.pageUrl,
     pageTitle: input.pageTitle,
   }
-  if (input.frameworkInfo) {
-    if (input.frameworkInfo.framework) {
-      pageContext.framework = input.frameworkInfo.framework
-    }
-    if (input.frameworkInfo.metaFramework) {
-      pageContext.metaFramework = input.frameworkInfo.metaFramework
-    }
-  }
+  applyFramework(pageContext, input.frameworkInfo)
   lines.push(JSON.stringify(pageContext))
 
   // 3. Selected Element
-  const el = input.elementInfo
-  const selectedElement: Record<string, unknown> = {
-    type: "selectedElement",
-    selector: el.selector,
-    tag: el.tag,
-  }
-  if (el.text) {
-    selectedElement.text = el.text
-  }
-  if (Object.keys(el.attributes).length > 0) {
-    selectedElement.attributes = el.attributes
-  }
-  lines.push(JSON.stringify(selectedElement))
+  lines.push(
+    JSON.stringify({
+      type: "selectedElement",
+      ...buildElementEntry(input.elementInfo),
+    })
+  )
 
   // 4. Component Tree (conditional)
   if (input.componentInfo) {
-    const comp = input.componentInfo
-    const componentTree: Record<string, unknown> = {
-      type: "componentTree",
-      framework: comp.framework,
-      hierarchy: comp.hierarchy,
-    }
-    if (comp.props) {
-      componentTree.props = comp.props
-    }
-    if (comp.state) {
-      const stateKey = comp.framework === "vue" ? "data" : "state"
-      componentTree[stateKey] = comp.state
-    }
-    lines.push(JSON.stringify(componentTree))
+    lines.push(
+      JSON.stringify({
+        type: "componentTree",
+        ...buildComponentEntry(input.componentInfo),
+      })
+    )
   }
 
   return lines.join("\n")
@@ -77,11 +60,10 @@ export function generateBatchJsonl(input: BatchInput): string {
     url: input.pageUrl,
     pageTitle: input.pageTitle,
   }
-  const firstFramework = input.annotations.find(a => a.frameworkInfo)?.frameworkInfo
-  if (firstFramework) {
-    if (firstFramework.framework) pageContext.framework = firstFramework.framework
-    if (firstFramework.metaFramework) pageContext.metaFramework = firstFramework.metaFramework
-  }
+  const firstFramework = input.annotations.find(
+    (a) => a.frameworkInfo
+  )?.frameworkInfo
+  applyFramework(pageContext, firstFramework)
   if (input.metadata) {
     pageContext.viewport = `${input.metadata.viewport.width}x${input.metadata.viewport.height}`
     pageContext.language = input.metadata.language
@@ -91,38 +73,56 @@ export function generateBatchJsonl(input: BatchInput): string {
 
   // Each annotation
   for (const annotation of input.annotations) {
-    const entry: Record<string, unknown> = {
-      type: "annotation",
-      id: annotation.id,
-    }
-    if (annotation.instruction.trim()) {
-      entry.instruction = annotation.instruction.trim()
-    }
-
-    const el = annotation.elementInfo
-    const element: Record<string, unknown> = {
-      selector: el.selector,
-      tag: el.tag,
-    }
-    if (el.text) element.text = el.text
-    if (Object.keys(el.attributes).length > 0) element.attributes = el.attributes
-    entry.element = element
-
-    if (annotation.componentInfo) {
-      const comp = annotation.componentInfo
-      const component: Record<string, unknown> = {
-        framework: comp.framework,
-        hierarchy: comp.hierarchy,
-      }
-      if (comp.props) component.props = comp.props
-      if (comp.state) {
-        component[comp.framework === "vue" ? "data" : "state"] = comp.state
-      }
-      entry.component = component
-    }
-
-    lines.push(JSON.stringify(entry))
+    lines.push(JSON.stringify(buildAnnotationEntry(annotation)))
   }
 
   return lines.join("\n")
+}
+
+function buildAnnotationEntry(
+  annotation: BatchInput["annotations"][number]
+): Record<string, unknown> {
+  const entry: Record<string, unknown> = {
+    type: "annotation",
+    id: annotation.id,
+  }
+  if (annotation.instruction.trim()) {
+    entry.instruction = annotation.instruction.trim()
+  }
+  entry.element = buildElementEntry(annotation.elementInfo)
+  if (annotation.componentInfo) {
+    entry.component = buildComponentEntry(annotation.componentInfo)
+  }
+  return entry
+}
+
+function buildElementEntry(el: ElementInfo): Record<string, unknown> {
+  const element: Record<string, unknown> = {
+    selector: el.selector,
+    tag: el.tag,
+  }
+  if (el.text) element.text = el.text
+  if (Object.keys(el.attributes).length > 0) element.attributes = el.attributes
+  return element
+}
+
+function buildComponentEntry(comp: ComponentInfo): Record<string, unknown> {
+  const component: Record<string, unknown> = {
+    framework: comp.framework,
+    hierarchy: comp.hierarchy,
+  }
+  if (comp.props) component.props = comp.props
+  if (comp.state) {
+    component[comp.framework === "vue" ? "data" : "state"] = comp.state
+  }
+  return component
+}
+
+function applyFramework(
+  target: Record<string, unknown>,
+  framework: FrameworkInfo | null | undefined
+): void {
+  if (!framework) return
+  if (framework.framework) target.framework = framework.framework
+  if (framework.metaFramework) target.metaFramework = framework.metaFramework
 }
