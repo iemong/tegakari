@@ -82,6 +82,8 @@ Open the Options page from the settings icon (⚙) in the toolbar to configure a
 
 The configured prefix is prepended to the output when you copy.
 
+If you are not comfortable with regular expressions, the [`tegakari-prefix-rules` skill](skills/tegakari-prefix-rules/SKILL.md) — installable via `gh skill` — generates the import JSON interactively: just answer which URLs your app runs on and the repository name. See [`skills/README.md`](skills/README.md) for details.
+
 ## Output examples
 
 ### Markdown format
