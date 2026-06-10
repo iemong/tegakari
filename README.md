@@ -7,6 +7,8 @@
 
 **English** | [日本語](./README.ja.md)
 
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/phobgclkkcnkmmfnmloganoefjifnidp?label=Chrome%20Web%20Store&color=2563eb)](https://chromewebstore.google.com/detail/tegakari/phobgclkkcnkmmfnmloganoefjifnidp)
+
 </div>
 
 A Chrome extension that lets you select elements on any web page and capture their context (element info, framework, component hierarchy, and more) as Markdown or JSONL.
@@ -30,11 +32,13 @@ Copy the generated text to your clipboard and paste it straight into AI editors 
 
 ## Installation
 
-### From the Chrome Web Store (after release)
+### From the Chrome Web Store (recommended)
 
-You can install it from the published page on the Chrome Web Store.
+Install it from the Chrome Web Store:
 
-> 🚧 Release in progress. See [`docs/publishing.md`](docs/publishing.md) for the publishing steps.
+<a href="https://chromewebstore.google.com/detail/tegakari/phobgclkkcnkmmfnmloganoefjifnidp" target="_blank">
+  <img src="https://developer.chrome.com/static/docs/webstore/branding/image/HRs9MPufa1J1h5glNhut.png" alt="Available in the Chrome Web Store" width="206" />
+</a>
 
 ### Build from source and load it
 
