@@ -51,6 +51,7 @@ export default function Overlay() {
         onDeleteAnnotation={ann.handleDeleteAnnotation}
         onClearAll={ann.handleClearAll}
         onClose={close}
+        onImportAnnotations={ann.handleImportAnnotations}
       />
     </ThemeContext.Provider>
   )

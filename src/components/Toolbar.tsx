@@ -34,6 +34,7 @@ interface Props {
   onDeleteAnnotation: (id: number) => void
   onClearAll: () => void
   onClose: () => void
+  onImportAnnotations: (imported: Annotation[]) => void
 }
 
 export default function Toolbar(props: Props) {
@@ -59,6 +60,7 @@ export default function Toolbar(props: Props) {
         <InboxPanel
           annotations={props.annotations}
           activeAnnotationId={props.activeAnnotationId}
+          metadata={props.metadata}
           prefix={t.prefix}
           matchedPrefix={t.matchedPrefix}
           copiedItemId={t.copiedItemId}
@@ -67,6 +69,7 @@ export default function Toolbar(props: Props) {
           onCopyItem={t.handleCopyItem}
           onDeleteAnnotation={props.onDeleteAnnotation}
           onClearAll={props.onClearAll}
+          onImportAnnotations={props.onImportAnnotations}
         />
       )}
     </>

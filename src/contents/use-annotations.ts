@@ -188,10 +188,25 @@ function useAnnotationActions({
     await clearAllAnnotations(location.href)
   }, [setAnnotations, setActiveId, nextIdRef])
 
+  // Append imported annotations, renumbering them to avoid id collisions
+  const handleImportAnnotations = useCallback(
+    (imported: Annotation[]) => {
+      mutate((prev) => {
+        const renumbered = imported.map((a) => ({
+          ...a,
+          id: nextIdRef.current++,
+        }))
+        return [...prev, ...renumbered]
+      })
+    },
+    [mutate, nextIdRef]
+  )
+
   return {
     handleUpdateInstruction,
     handleDeleteAnnotation,
     handleClearAll,
+    handleImportAnnotations,
   }
 }
 
