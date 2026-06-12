@@ -1,7 +1,12 @@
 import { safeSerialize } from "./serialize"
-import type { ComponentInfo } from "./types"
+import type { ComponentInfo, SourceLocation } from "./types"
 
 const skipKey = (key: string) => key.startsWith("_") || key.startsWith("$$")
+
+interface DebugSource {
+  fileName?: string
+  lineNumber?: number
+}
 
 interface FiberNode {
   tag: number
@@ -12,6 +17,10 @@ interface FiberNode {
   return: FiberNode | null
   child: FiberNode | null
   sibling: FiberNode | null
+  /** JSX callsite of this element (dev builds; removed in React 19) */
+  _debugSource?: DebugSource | null
+  /** Component that created this element (dev builds) */
+  _debugOwner?: FiberNode | null
 }
 
 export function collectReactComponent(element: Element): ComponentInfo | null {
@@ -25,13 +34,35 @@ export function collectReactComponent(element: Element): ComponentInfo | null {
   const component = nearestComponent!
   const props = safeSerialize(component.memoizedProps, skipKey)
   const state = extractState(component)
+  const source = extractSource(fiber)
 
   return {
     framework: "react",
     hierarchy,
     props: props as Record<string, unknown> | undefined,
     state: state as Record<string, unknown> | undefined,
+    ...(source ? { source } : {}),
   }
+}
+
+// Walk up from the element's fiber and return the first _debugSource found —
+// the JSX callsite closest to the clicked DOM element. _debugOwner is checked
+// at each step because memo/forwardRef wrappers carry the source there.
+function extractSource(fiber: FiberNode): SourceLocation | null {
+  let current: FiberNode | null = fiber
+  while (current) {
+    const debugSource = current._debugSource ?? current._debugOwner?._debugSource
+    if (debugSource?.fileName) {
+      return {
+        file: debugSource.fileName,
+        ...(debugSource.lineNumber != null
+          ? { line: debugSource.lineNumber }
+          : {}),
+      }
+    }
+    current = current.return
+  }
+  return null
 }
 
 function getFiber(element: Element): FiberNode | null {

@@ -1,5 +1,5 @@
 import { safeSerialize } from "./serialize"
-import type { ComponentInfo } from "./types"
+import type { ComponentInfo, SourceLocation } from "./types"
 
 const skipKey = (key: string) =>
   key.startsWith("_") || key.startsWith("$") || key.startsWith("__")
@@ -27,13 +27,27 @@ function collectVue3(element: Element): ComponentInfo | null {
   const data = instance.setupState
     ? safeSerialize(instance.setupState, skipKey)
     : undefined
+  const source = getVue3Source(instance)
 
   return {
     framework: "vue",
     hierarchy,
     props: props as Record<string, unknown> | undefined,
     state: data as Record<string, unknown> | undefined,
+    ...(source ? { source } : {}),
   }
+}
+
+// SFC compilers attach the source path as type.__file (dev builds).
+// Walk up parents so wrapper components without __file don't hide it.
+function getVue3Source(instance: any): SourceLocation | null {
+  let current = instance
+  while (current) {
+    const file = current.type?.__file
+    if (typeof file === "string" && file) return { file }
+    current = current.parent
+  }
+  return null
 }
 
 function getVue3Hierarchy(instance: any): string[] {
@@ -64,13 +78,25 @@ function collectVue2(element: Element): ComponentInfo | null {
   const hierarchy = getVue2Hierarchy(vm)
   const props = vm.$props ? safeSerialize(vm.$props, skipKey) : undefined
   const data = vm.$data ? safeSerialize(vm.$data, skipKey) : undefined
+  const source = getVue2Source(vm)
 
   return {
     framework: "vue",
     hierarchy,
     props: props as Record<string, unknown> | undefined,
     state: data as Record<string, unknown> | undefined,
+    ...(source ? { source } : {}),
   }
+}
+
+function getVue2Source(vm: any): SourceLocation | null {
+  let current = vm
+  while (current) {
+    const file = current.$options?.__file
+    if (typeof file === "string" && file) return { file }
+    current = current.$parent
+  }
+  return null
 }
 
 function getVue2Hierarchy(vm: any): string[] {

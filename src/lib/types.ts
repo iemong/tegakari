@@ -20,11 +20,18 @@ export interface FrameworkInfo {
   metaFramework: string | null // "Next.js (App Router)" | "Nuxt"
 }
 
+/** Source location of the selected element's JSX/SFC (dev builds only) */
+export interface SourceLocation {
+  file: string
+  line?: number
+}
+
 export interface ComponentInfo {
   framework: "react" | "vue"
   hierarchy: string[]
   props?: Record<string, unknown>
   state?: Record<string, unknown>
+  source?: SourceLocation
 }
 
 export interface ElementInfo {

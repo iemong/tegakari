@@ -189,3 +189,81 @@ it("prefers Vue 3 when both are present", () => {
 
   expect(result!.hierarchy).toEqual(["Vue3Comp"])
 })
+
+it("Vue 3: extracts source from type.__file", () => {
+  const el = document.createElement("div")
+  ;(el as any).__vueParentComponent = {
+    type: { name: "PriceDisplay", __file: "src/components/PriceDisplay.vue" },
+    props: null,
+    setupState: null,
+    parent: null,
+  }
+
+  const result = collectVueComponent(el)
+
+  expect(result!.source).toEqual({ file: "src/components/PriceDisplay.vue" })
+})
+
+it("Vue 3: falls back to parent __file when own type has none", () => {
+  const el = document.createElement("div")
+  ;(el as any).__vueParentComponent = {
+    type: { name: "Wrapper" },
+    props: null,
+    setupState: null,
+    parent: {
+      type: { name: "Page", __file: "src/pages/Page.vue" },
+      props: null,
+      setupState: null,
+      parent: null,
+    },
+  }
+
+  const result = collectVueComponent(el)
+
+  expect(result!.source).toEqual({ file: "src/pages/Page.vue" })
+})
+
+it("Vue 3: omits source when no __file exists (prod build)", () => {
+  const el = document.createElement("div")
+  ;(el as any).__vueParentComponent = {
+    type: { name: "Prod" },
+    props: null,
+    setupState: null,
+    parent: null,
+  }
+
+  const result = collectVueComponent(el)
+
+  expect(result!.source).toBeUndefined()
+})
+
+it("Vue 2: extracts source from $options.__file", () => {
+  const el = document.createElement("div")
+  ;(el as any).__vue__ = {
+    $options: { name: "Legacy", __file: "src/components/Legacy.vue" },
+    $props: { id: 1 },
+    $data: {},
+    $parent: null,
+  }
+
+  const result = collectVueComponent(el)
+
+  expect(result!.source).toEqual({ file: "src/components/Legacy.vue" })
+})
+
+it("Vue 2: falls back to $parent __file when own options have none", () => {
+  const el = document.createElement("div")
+  ;(el as any).__vue__ = {
+    $options: { name: "Child" },
+    $props: null,
+    $data: null,
+    $parent: {
+      $options: { name: "Root", __file: "src/App.vue" },
+      $parent: null,
+    },
+  }
+
+  const result = collectVueComponent(el)
+
+  expect(result!.source).toEqual({ file: "src/App.vue" })
+})

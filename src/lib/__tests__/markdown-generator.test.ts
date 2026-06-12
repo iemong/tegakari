@@ -281,3 +281,36 @@ it("generateMarkdown: should format non-standard value types via String() fallba
 
   expect(result).toContain("42")
 })
+
+it("generateMarkdown: should include component source line", () => {
+  const input: MarkdownInput = {
+    instruction: "",
+    pageUrl: "https://example.com",
+    pageTitle: "Example Page",
+    frameworkInfo: baseFrameworkInfo,
+    elementInfo: baseElementInfo,
+    componentInfo: {
+      ...baseComponentInfo,
+      source: { file: "src/components/Header.tsx", line: 42 },
+    },
+  }
+
+  const result = generateMarkdown(input)
+
+  expect(result).toContain("- **Source**: `src/components/Header.tsx:42`")
+})
+
+it("generateMarkdown: should not render a Source line when component has none", () => {
+  const input: MarkdownInput = {
+    instruction: "",
+    pageUrl: "https://example.com",
+    pageTitle: "Example Page",
+    frameworkInfo: baseFrameworkInfo,
+    elementInfo: baseElementInfo,
+    componentInfo: baseComponentInfo,
+  }
+
+  const result = generateMarkdown(input)
+
+  expect(result).not.toContain("**Source**")
+})
