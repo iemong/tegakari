@@ -9,7 +9,10 @@ const FIXTURE_URL = process.env.FIXTURE_URL ?? "http://localhost:4321/"
  * fires. This is exactly the check we need to catch z-index / hit-test
  * regressions for *every* button.
  */
-async function expectAllToolbarButtonsClickable(page: Page) {
+async function expectAllToolbarButtonsClickable(
+  page: Page,
+  { imageCopyEnabled }: { imageCopyEnabled: boolean }
+) {
   // Title-based buttons.
   for (const title of ["Inbox", "Close tegakari"]) {
     const btn = page.getByTitle(title, { exact: true })
@@ -21,6 +24,16 @@ async function expectAllToolbarButtonsClickable(page: Page) {
   const copy = page.getByTitle(/^Copy All/)
   await expect(copy, "Copy button should be visible").toBeVisible()
   await copy.click({ trial: true })
+
+  // Copy Image button — disabled until an annotation has a screenshot.
+  const copyImage = page.getByTitle(/^Copy Image/)
+  await expect(copyImage, "Copy Image button should be visible").toBeVisible()
+  if (imageCopyEnabled) {
+    await expect(copyImage).toBeEnabled()
+    await copyImage.click({ trial: true })
+  } else {
+    await expect(copyImage).toBeDisabled()
+  }
 
   // Format toggle pill (text-only buttons).
   for (const fmt of ["JSONL", "MD"]) {
@@ -38,7 +51,7 @@ extTest.describe("Toolbar buttons", () => {
       await page.goto(FIXTURE_URL)
       await activateExtension()
 
-      await expectAllToolbarButtonsClickable(page)
+      await expectAllToolbarButtonsClickable(page, { imageCopyEnabled: false })
     }
   )
 
@@ -60,9 +73,40 @@ extTest.describe("Toolbar buttons", () => {
       await expect(inboxBadge).toHaveText("1")
 
       // Settle: auto-screenshot crop + main-world framework probe are async.
-      await page.waitForTimeout(300)
+      // The Copy Image button flips to enabled once the crop is attached.
+      await expect(page.getByTitle(/^Copy Image/)).toBeEnabled()
 
-      await expectAllToolbarButtonsClickable(page)
+      await expectAllToolbarButtonsClickable(page, { imageCopyEnabled: true })
+    }
+  )
+
+  extTest(
+    "copy image button writes a contact-sheet PNG to the clipboard",
+    async ({ context, activateExtension }) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+        origin: new URL(FIXTURE_URL).origin,
+      })
+
+      const page = await context.newPage()
+      await page.goto(FIXTURE_URL)
+      await activateExtension()
+
+      await page.locator("#btn-a").click()
+      const copyImage = page.getByTitle(/^Copy Image/)
+      await expect(copyImage).toBeEnabled()
+
+      await copyImage.click()
+
+      // Success feedback: the title flips while the copied state is shown.
+      await expect(page.getByTitle("Image copied!")).toBeVisible()
+
+      // The clipboard should now hold a PNG (image-only, no text bundled).
+      const clipboardTypes = await page.evaluate(async () => {
+        const items = await navigator.clipboard.read()
+        return items.flatMap((item) => [...item.types])
+      })
+      expect(clipboardTypes).toContain("image/png")
+      expect(clipboardTypes).not.toContain("text/plain")
     }
   )
 })
