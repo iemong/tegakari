@@ -1,3 +1,4 @@
+import { collectElementStyles } from "~lib/style-collector"
 import type { CaptureResponse, ElementInfo } from "~lib/types"
 
 const INTERESTING_ATTRS = [
@@ -40,11 +41,13 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 export function buildElementInfo(target: Element, selector: string): ElementInfo {
+  const styles = collectElementStyles(target)
   return {
     selector,
     tag: target.tagName.toLowerCase(),
     text: truncateText((target as HTMLElement).innerText || "", 200),
     attributes: getAttributes(target),
+    ...(styles ? { styles } : {}),
   }
 }
 

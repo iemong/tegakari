@@ -207,3 +207,41 @@ it("generateJsonl: should omit source key when component has none", () => {
 
   expect("source" in componentTree).toBe(false)
 })
+
+it("generateJsonl: should include element styles when present", () => {
+  const input: MarkdownInput = {
+    instruction: "",
+    pageUrl: "https://example.com",
+    pageTitle: "Example",
+    frameworkInfo: null,
+    elementInfo: {
+      ...baseElementInfo,
+      styles: { display: "flex", padding: "8px 16px" },
+    },
+    componentInfo: null,
+  }
+
+  const lines = generateJsonl(input).split("\n")
+  const selectedElement = JSON.parse(lines[lines.length - 1])
+
+  expect(selectedElement.styles).toEqual({
+    display: "flex",
+    padding: "8px 16px",
+  })
+})
+
+it("generateJsonl: should omit styles key when absent or empty", () => {
+  const input: MarkdownInput = {
+    instruction: "",
+    pageUrl: "https://example.com",
+    pageTitle: "Example",
+    frameworkInfo: null,
+    elementInfo: { ...baseElementInfo, styles: {} },
+    componentInfo: null,
+  }
+
+  const lines = generateJsonl(input).split("\n")
+  const selectedElement = JSON.parse(lines[lines.length - 1])
+
+  expect("styles" in selectedElement).toBe(false)
+})
