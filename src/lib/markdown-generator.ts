@@ -104,6 +104,13 @@ function elementLines(el: ElementInfo): string[] {
       lines.push(`  - ${key}: \`${value}\``)
     }
   }
+  const styleEntries = Object.entries(el.styles ?? {})
+  if (styleEntries.length > 0) {
+    lines.push(`- **Styles**:`)
+    for (const [prop, value] of styleEntries) {
+      lines.push(`  - ${prop}: \`${value}\``)
+    }
+  }
   return lines
 }
 

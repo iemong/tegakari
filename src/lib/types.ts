@@ -39,6 +39,8 @@ export interface ElementInfo {
   tag: string
   text: string
   attributes: Record<string, string>
+  /** Effective styles diffed against tag defaults (curated subset) */
+  styles?: Record<string, string>
 }
 
 export interface Rect {

@@ -104,6 +104,9 @@ function buildElementEntry(el: ElementInfo): Record<string, unknown> {
   }
   if (el.text) element.text = el.text
   if (Object.keys(el.attributes).length > 0) element.attributes = el.attributes
+  if (el.styles && Object.keys(el.styles).length > 0) {
+    element.styles = el.styles
+  }
   return element
 }
 
