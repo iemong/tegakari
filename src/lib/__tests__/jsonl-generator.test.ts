@@ -172,3 +172,38 @@ it("generateJsonl: should handle componentInfo without props and state", () => {
   expect(componentTree.props).toBeUndefined()
   expect(componentTree.state).toBeUndefined()
 })
+
+it("generateJsonl: should include component source as file:line string", () => {
+  const input: MarkdownInput = {
+    instruction: "",
+    pageUrl: "https://example.com",
+    pageTitle: "Example",
+    frameworkInfo: baseFrameworkInfo,
+    elementInfo: baseElementInfo,
+    componentInfo: {
+      ...baseComponentInfo,
+      source: { file: "src/components/Header.tsx", line: 42 },
+    },
+  }
+
+  const lines = generateJsonl(input).split("\n")
+  const componentTree = JSON.parse(lines[lines.length - 1])
+
+  expect(componentTree.source).toBe("src/components/Header.tsx:42")
+})
+
+it("generateJsonl: should omit source key when component has none", () => {
+  const input: MarkdownInput = {
+    instruction: "",
+    pageUrl: "https://example.com",
+    pageTitle: "Example",
+    frameworkInfo: baseFrameworkInfo,
+    elementInfo: baseElementInfo,
+    componentInfo: baseComponentInfo,
+  }
+
+  const lines = generateJsonl(input).split("\n")
+  const componentTree = JSON.parse(lines[lines.length - 1])
+
+  expect("source" in componentTree).toBe(false)
+})

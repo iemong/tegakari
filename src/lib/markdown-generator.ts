@@ -1,3 +1,4 @@
+import { formatSourceLocation } from "./source-location"
 import type {
   BatchInput,
   ComponentInfo,
@@ -110,6 +111,9 @@ function componentLines(comp: ComponentInfo, hierarchyLabel: string): string[] {
   const lines: string[] = []
   if (comp.hierarchy.length > 0) {
     lines.push(`${hierarchyLabel}\`${comp.hierarchy.join("` → `")}\``)
+  }
+  if (comp.source) {
+    lines.push(`- **Source**: \`${formatSourceLocation(comp.source)}\``)
   }
   if (comp.props) {
     lines.push(`- **Props**: \`${formatObject(comp.props)}\``)

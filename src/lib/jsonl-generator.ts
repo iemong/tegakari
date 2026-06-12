@@ -1,3 +1,4 @@
+import { formatSourceLocation } from "./source-location"
 import type {
   BatchInput,
   ComponentInfo,
@@ -111,6 +112,7 @@ function buildComponentEntry(comp: ComponentInfo): Record<string, unknown> {
     framework: comp.framework,
     hierarchy: comp.hierarchy,
   }
+  if (comp.source) component.source = formatSourceLocation(comp.source)
   if (comp.props) component.props = comp.props
   if (comp.state) {
     component[comp.framework === "vue" ? "data" : "state"] = comp.state
