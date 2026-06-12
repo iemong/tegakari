@@ -60,8 +60,13 @@ jobs:
       # globalSetup (tests/e2e/global-setup.ts) builds the extension into
       # build/chrome-mv3-prod before specs run. MV3 service workers do not run
       # in classic headless, so the suite is headed and needs a virtual display.
+      # E2E_REBUILD=1 is required: build/chrome-mv3-prod is checked into the
+      # repo, so without it globalSetup reuses that stale build and the suite
+      # silently tests the wrong code instead of this commit.
       - name: Run E2E tests
         run: xvfb-run -a pnpm e2e
+        env:
+          E2E_REBUILD: "1"
 
       - name: Upload Playwright artifacts on failure
         if: failure()

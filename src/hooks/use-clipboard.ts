@@ -25,11 +25,30 @@ function writeViaTextarea(text: string): boolean {
   }
 }
 
+// Image-only ClipboardItem: intentionally NOT bundled with text — paste
+// targets pick one representation, and image-preferring apps would drop the
+// text. Text and image are copied via separate buttons instead (#21).
+async function writeImageViaApi(blob: Blob): Promise<boolean> {
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type]: blob }),
+    ])
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function useClipboard() {
   const copy = useCallback(async (text: string): Promise<boolean> => {
     if (await writeViaApi(text)) return true
     return writeViaTextarea(text)
   }, [])
 
-  return { copy }
+  const copyImage = useCallback(
+    (blob: Blob): Promise<boolean> => writeImageViaApi(blob),
+    []
+  )
+
+  return { copy, copyImage }
 }

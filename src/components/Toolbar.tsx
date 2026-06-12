@@ -6,6 +6,7 @@ import {
   useState,
 } from "react"
 
+import { CopyImageButton } from "~components/copy-image-button"
 import InboxPanel from "~components/InboxPanel"
 import { CloseIcon, CopyIcon, InboxIcon } from "~components/icons"
 import { useClipboard } from "~hooks/use-clipboard"
@@ -48,6 +49,7 @@ export default function Toolbar(props: Props) {
         theme={theme}
         inboxOpen={t.inboxOpen}
         onToggleInbox={() => t.setInboxOpen((open) => !open)}
+        annotations={t.annotations}
         count={t.annotations.length}
         copied={t.copied}
         onCopy={t.handleCopy}
@@ -171,6 +173,7 @@ interface ToolbarBarProps {
   theme: Theme
   inboxOpen: boolean
   onToggleInbox: () => void
+  annotations: Annotation[]
   count: number
   copied: boolean
   onCopy: () => void
@@ -184,6 +187,7 @@ function ToolbarBar({
   theme,
   inboxOpen,
   onToggleInbox,
+  annotations,
   count,
   copied,
   onCopy,
@@ -209,6 +213,7 @@ function ToolbarBar({
         title={copied ? "Copied!" : `Copy All (${count})`}>
         <CopyIcon color={copied ? theme.success : theme.textMuted} />
       </button>
+      <CopyImageButton annotations={annotations} />
       <div style={dividerStyle(theme)} />
       <FormatToggle
         theme={theme}
