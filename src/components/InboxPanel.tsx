@@ -1,10 +1,11 @@
-import { useCallback, useState } from "react"
+import { type ReactNode, useCallback, useState } from "react"
 
 import { TrashIcon } from "~components/icons"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation } from "~lib/types"
+import type { Annotation, PageMetadata } from "~lib/types"
 
 import { AnnotationRow } from "./annotation-row"
+import { ShareBar } from "./share-bar"
 import {
   clearButtonStyle,
   emptyStyle,
@@ -18,6 +19,7 @@ import {
 interface Props {
   annotations: Annotation[]
   activeAnnotationId: number | null
+  metadata: PageMetadata | null
   prefix: string
   matchedPrefix: string | null
   copiedItemId: number | null
@@ -26,6 +28,7 @@ interface Props {
   onCopyItem: (annotation: Annotation) => void
   onDeleteAnnotation: (id: number) => void
   onClearAll: () => void
+  onImportAnnotations: (imported: Annotation[]) => void
 }
 
 export default function InboxPanel(props: Props) {
@@ -37,6 +40,14 @@ export default function InboxPanel(props: Props) {
         theme={theme}
         count={props.annotations.length}
         onClearAll={props.onClearAll}
+        shareBar={
+          <ShareBar
+            theme={theme}
+            annotations={props.annotations}
+            metadata={props.metadata}
+            onImportAnnotations={props.onImportAnnotations}
+          />
+        }
       />
       <PrefixInput
         theme={theme}
@@ -53,9 +64,10 @@ interface HeaderProps {
   theme: Theme
   count: number
   onClearAll: () => void
+  shareBar: ReactNode
 }
 
-function InboxHeader({ theme, count, onClearAll }: HeaderProps) {
+function InboxHeader({ theme, count, onClearAll, shareBar }: HeaderProps) {
   const [confirmClear, setConfirmClear] = useState(false)
 
   const handleClearAll = useCallback(() => {
@@ -74,6 +86,7 @@ function InboxHeader({ theme, count, onClearAll }: HeaderProps) {
         Annotations{count > 0 ? ` (${count})` : ""}
       </div>
       <div style={{ display: "flex", gap: 4 }}>
+        {shareBar}
         {count > 0 && (
           <button
             onClick={handleClearAll}
