@@ -40,7 +40,12 @@ export function ShareBar({
   const [message, setMessage] = useState<Message | null>(null)
 
   const handleExport = useCallback(() => {
-    downloadAnnotationsFile(annotations, metadata)
+    // The download anchor must live inside the overlay's shadow DOM: while
+    // picking is active, a capture-phase suppressor on the page document
+    // preventDefaults any click outside the Plasmo UI, which cancels the
+    // download when the anchor sits in document.body.
+    const container = fileInputRef.current?.parentElement ?? document.body
+    downloadAnnotationsFile(annotations, metadata, container)
     setMessage({
       tone: "success",
       text: `Exported ${annotations.length} annotation(s).`,
@@ -93,7 +98,8 @@ export function ShareBar({
 
 function downloadAnnotationsFile(
   annotations: Annotation[],
-  metadata: PageMetadata | null
+  metadata: PageMetadata | null,
+  container: HTMLElement
 ) {
   const store = {
     url: location.href,
@@ -107,9 +113,9 @@ function downloadAnnotationsFile(
   const a = document.createElement("a")
   a.href = url
   a.download = exportFileName(location.href, new Date())
-  document.body.appendChild(a)
+  container.appendChild(a)
   a.click()
-  document.body.removeChild(a)
+  container.removeChild(a)
   URL.revokeObjectURL(url)
 }
 
