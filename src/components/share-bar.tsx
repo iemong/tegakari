@@ -29,7 +29,7 @@ interface Props {
   onImportAnnotations: (imported: Annotation[]) => void
 }
 
-/** Export / import the current annotation set as a .tegakari.json file */
+/** Export / import the current annotation set as a tegakari-annotations JSON file */
 export function ShareBar({
   theme,
   annotations,
@@ -68,14 +68,14 @@ export function ShareBar({
       <button
         onClick={() => fileInputRef.current?.click()}
         style={shareButtonStyle(theme)}
-        title="Import annotations from a .tegakari.json file">
+        title="Import annotations from a tegakari annotations JSON file">
         <UploadIcon color={theme.textMuted} />
       </button>
       <button
         onClick={handleExport}
         disabled={annotations.length === 0}
         style={shareButtonStyle(theme, annotations.length === 0)}
-        title="Export annotations as a .tegakari.json file">
+        title="Export annotations as a tegakari annotations JSON file">
         <DownloadIcon color={theme.textMuted} />
       </button>
       <input
