@@ -23,7 +23,9 @@ export default function Overlay() {
   const { isActive, ann, picking, close, theme, themeMode, toggleMode } =
     useOverlay()
 
-  if (!isActive && ann.annotations.length === 0) return null
+  // Close (✕ / toolbar-icon toggle) must hide the whole overlay even when
+  // annotations exist — they stay persisted and are restored on reactivation.
+  if (!isActive) return null
 
   return (
     <ThemeContext.Provider value={{ theme, mode: themeMode, toggleMode }}>
