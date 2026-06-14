@@ -21,10 +21,14 @@ Copy the generated text to your clipboard and paste it straight into AI editors 
 - Drop a pin marker on each selected element and enter an instruction in the popover next to it
 - Auto-capture a screenshot when you click an element (cropped around the element)
 - Grab the element's HTML info (tag, attributes, text)
+- Capture the element's effective styles (a computed-style diff vs. tag defaults) so AI can answer "tighten this spacing / change this color" with real values
 - Auto-detect React / Vue component hierarchy, props, and state
+- Resolve the component's source location (`file:line`) into the output when available (dev builds)
 - Detect meta-frameworks such as Next.js / Nuxt
 - Collect page metadata (viewport, user agent, language) and include it in the output
 - Switch between JSONL / Markdown and copy to the clipboard
+- Copy all annotation screenshots as a single contact-sheet image
+- Export / import annotation sets as a timestamped JSON file (`tegakari-annotations-*.json`) to share or back them up
 - Per-URL-pattern prefix settings (e.g. `[repo=my-app]`)
 - Persist annotations per URL (up to 50, restored after a page reload)
 - Archive management for annotations (Active / Archived)
@@ -69,12 +73,14 @@ Install it from the Chrome Web Store:
 6. Use the toolbar at the bottom of the screen:
    - **Inbox**: show the annotation list (Active / Archived tabs)
    - **Copy**: copy all annotations to the clipboard
+   - **Copy Image**: copy all annotation screenshots as a single contact-sheet image
    - **JSONL / MD**: switch the output format
    - **Theme toggle**: dark / light mode
    - **Settings**: manage prefix rules (Options page)
 7. Each item in the Inbox has a copy button (single copy) and an archive button
-8. Paste it into your AI editor and put it to work
-9. Press `Esc` to close the toolbar (annotations are kept)
+8. Use the import / export buttons in the Inbox to save the annotation set as a JSON file (`tegakari-annotations-*.json`) and restore it later
+9. Paste it into your AI editor and put it to work
+10. Press `Esc` to close the toolbar (annotations are kept)
 
 ### Prefix settings
 
@@ -113,7 +119,13 @@ If you are not comfortable with regular expressions, the [`tegakari-prefix-rules
   - class: `btn btn-primary px-4 py-2`
   - data-testid: `settings-submit-btn`
   - type: `submit`
+- **Styles**:
+  - padding: `8px 16px`
+  - border-radius: `8px`
+  - background-color: `rgb(37, 99, 235)`
+  - color: `rgb(255, 255, 255)`
 - **Component**: `SettingsPage` → `SettingsForm` → `SubmitButton`
+- **Source**: `src/components/SubmitButton.tsx:42`
 - **Props**: `{ variant: "primary", disabled: false, onClick: fn }`
 - **State**: `{ isSubmitting: false }`
 ```
@@ -123,7 +135,7 @@ If you are not comfortable with regular expressions, the [`tegakari-prefix-rules
 ```jsonl
 {"type":"prefix","content":"[repo=my-app]"}
 {"type":"pageContext","url":"https://example.com/dashboard/settings","pageTitle":"Settings | Example App","framework":"React","metaFramework":"Next.js (App Router)","viewport":"1920x1080","language":"en","userAgent":"Mozilla/5.0 ..."}
-{"type":"annotation","id":1,"instruction":"When this save button is clicked, show a confirm dialog","element":{"selector":"#settings-form > div:nth-child(2) > button.btn-primary","tag":"button","text":"Save","attributes":{"class":"btn btn-primary px-4 py-2","data-testid":"settings-submit-btn","type":"submit"}},"component":{"framework":"react","hierarchy":["SettingsPage","SettingsForm","SubmitButton"],"props":{"variant":"primary","disabled":false,"onClick":"fn"},"state":{"isSubmitting":false}}}
+{"type":"annotation","id":1,"instruction":"When this save button is clicked, show a confirm dialog","element":{"selector":"#settings-form > div:nth-child(2) > button.btn-primary","tag":"button","text":"Save","attributes":{"class":"btn btn-primary px-4 py-2","data-testid":"settings-submit-btn","type":"submit"},"styles":{"padding":"8px 16px","border-radius":"8px","background-color":"rgb(37, 99, 235)","color":"rgb(255, 255, 255)"}},"component":{"framework":"react","hierarchy":["SettingsPage","SettingsForm","SubmitButton"],"source":"src/components/SubmitButton.tsx:42","props":{"variant":"primary","disabled":false,"onClick":"fn"},"state":{"isSubmitting":false}}}
 ```
 
 ## Supported frameworks
