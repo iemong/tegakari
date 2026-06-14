@@ -144,15 +144,15 @@ it("isSamePage: falls back to string equality for invalid URLs", () => {
   expect(isSamePage("not-a-url", "other")).toBe(false)
 })
 
-it("exportFileName: includes host and date", () => {
+it("exportFileName: includes host and timestamp", () => {
   const name = exportFileName(
     "https://example.com/page",
     new Date("2026-06-13T12:00:00Z")
   )
-  expect(name).toBe("tegakari-annotations-example.com-2026-06-13.json")
+  expect(name).toBe("tegakari-annotations-example.com-2026-06-13-12-00-00.json")
 })
 
 it("exportFileName: falls back to 'page' for invalid URLs", () => {
   const name = exportFileName("not-a-url", new Date("2026-06-13T12:00:00Z"))
-  expect(name).toBe("tegakari-annotations-page-2026-06-13.json")
+  expect(name).toBe("tegakari-annotations-page-2026-06-13-12-00-00.json")
 })

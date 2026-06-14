@@ -1,4 +1,5 @@
-// Export/import of an annotation set as a single .tegakari.json file, so a
+// Export/import of an annotation set as a single JSON file
+// (tegakari-annotations-*.json), so a
 // set pinned by one person (e.g. a PM on a staging site) can be reviewed and
 // fed to an AI editor by another.
 
@@ -31,8 +32,10 @@ export function serializeAnnotationStore(store: AnnotationStore): string {
 
 export function exportFileName(url: string, date: Date): string {
   const host = hostOf(url)
-  const day = date.toISOString().slice(0, 10)
-  return `tegakari-annotations-${host}-${day}.json`
+  // Include the time, not just the day, so multiple exports of the same page
+  // on one day don't collide (e.g. 2026-06-13-12-00-00).
+  const stamp = date.toISOString().slice(0, 19).replace(/[:T]/g, "-")
+  return `tegakari-annotations-${host}-${stamp}.json`
 }
 
 function hostOf(url: string): string {
