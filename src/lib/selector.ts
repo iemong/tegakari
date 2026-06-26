@@ -1,3 +1,17 @@
+/**
+ * A short, human-readable hint for an element, used by the hover/traversal
+ * label (#34): its id (`#id`) or first class (`.first`), or "" when neither
+ * exists. Not a unique selector — just enough to recognize the element.
+ */
+export function shortSelectorHint(element: Element): string {
+  if (element.id) return `#${element.id}`
+  if (typeof element.className === "string") {
+    const first = element.className.trim().split(/\s+/).filter(Boolean)[0]
+    if (first) return `.${first}`
+  }
+  return ""
+}
+
 export function generateSelector(element: Element): string {
   const parts: string[] = []
   let current: Element | null = element

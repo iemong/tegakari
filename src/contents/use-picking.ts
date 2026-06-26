@@ -9,6 +9,7 @@ import {
   getSameOriginIframes,
   toTopViewportRect,
 } from "~lib/iframe"
+import { shortSelectorHint } from "~lib/selector"
 import type { Rect } from "~lib/types"
 
 import { isFromPlasmoUI } from "./overlay-helpers"
@@ -77,7 +78,7 @@ export function usePicking(
   iframeEnabled: boolean,
   addAnnotation: AddAnnotation
 ) {
-  const [hoveredRect, setHoveredRect] = useState<Rect | null>(null)
+  const [hovered, setHovered] = useState<HoverState | null>(null)
   const baseRef = useRef<Resolved | null>(null)
   const offsetStepsRef = useRef(0)
   const currentRef = useRef<Resolved | null>(null)
@@ -87,22 +88,22 @@ export function usePicking(
     baseRef.current = null
     currentRef.current = null
     offsetStepsRef.current = 0
-    setHoveredRect(null)
+    setHovered(null)
   }, [])
 
-  // Recompute the highlighted element from base + climb offset, clamping the
-  // offset to the steps actually available so ArrowDown stays in sync.
+  // Resolve base + climb offset to the highlighted element (offset clamped).
   const resolveAndShow = useCallback(() => {
     const base = baseRef.current
     if (!base) {
       currentRef.current = null
-      setHoveredRect(null)
+      setHovered(null)
       return
     }
     const { element, steps } = climbToAncestor(base.el, offsetStepsRef.current)
     offsetStepsRef.current = steps
     currentRef.current = { el: element, offset: base.offset }
-    setHoveredRect(toTopViewportRect(element, base.offset))
+    const rect = toTopViewportRect(element, base.offset)
+    setHovered({ rect, label: describeElement(element, rect) })
   }, [])
 
   const confirm = useCallback(
@@ -128,22 +129,42 @@ export function usePicking(
       confirm,
       clearHover,
     }
-    const binder: Binder = {
-      ctx,
-      onKeyDown: makeKeyHandler(ctx),
-      boundDocs: new Set<Document>(),
-      disposers: [],
-    }
-
-    bindDoc(binder, document, () => TOP_FRAME_OFFSET)
-    if (iframeEnabled) setupIframeBinding(binder)
-
-    return () => {
-      for (const dispose of binder.disposers) dispose()
-    }
+    return bindAll(ctx, iframeEnabled)
   }, [isActive, iframeEnabled, clearHover, resolveAndShow, confirm])
 
-  return { hoveredRect, clearHover }
+  return {
+    hoveredRect: hovered?.rect ?? null,
+    hoveredLabel: hovered?.label ?? null,
+    clearHover,
+  }
+}
+
+interface HoverState {
+  rect: Rect
+  label: string
+}
+
+// Attach picking listeners to the top document (and same-origin iframes when
+// enabled); returns a disposer that removes everything.
+function bindAll(ctx: PickingCtx, iframeEnabled: boolean): () => void {
+  const binder: Binder = {
+    ctx,
+    onKeyDown: makeKeyHandler(ctx),
+    boundDocs: new Set<Document>(),
+    disposers: [],
+  }
+  bindDoc(binder, document, () => TOP_FRAME_OFFSET)
+  if (iframeEnabled) setupIframeBinding(binder)
+  return () => {
+    for (const dispose of binder.disposers) dispose()
+  }
+}
+
+// Build the hover/traversal badge text, e.g. `div.card 320×96`.
+function describeElement(element: Element, rect: Rect): string {
+  const tag = element.tagName.toLowerCase()
+  const hint = shortSelectorHint(element)
+  return `${tag}${hint} ${Math.round(rect.width)}×${Math.round(rect.height)}`
 }
 
 function pointFromEvent(e: MouseEvent, offset: FrameOffset): Point {
