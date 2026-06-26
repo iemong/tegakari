@@ -1,26 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { collectPageMetadata } from "~lib/annotation-store"
+import { IFRAME_SELECTION_KEY, loadIframeSelection } from "~lib/settings"
 import { type ThemeMode, darkTheme, lightTheme } from "~lib/theme"
-import type { PageMetadata, Rect } from "~lib/types"
+import type { PageMetadata } from "~lib/types"
 
-import { isFromPlasmoUI } from "./overlay-helpers"
 import { useAnnotations } from "./use-annotations"
-
-type AddAnnotation = (target: Element, pageX: number, pageY: number) => void
-
-const SUPPRESSED_EVENTS = [
-  "mousedown",
-  "mouseup",
-  "pointerdown",
-  "pointerup",
-] as const
+import { usePicking } from "./use-picking"
 
 export function useOverlay() {
   const [isActive, setIsActive] = useState(false)
   const themeState = useOverlayTheme()
+  const iframeEnabled = useIframeSelection()
   const ann = useAnnotations()
-  const picking = usePicking(isActive, ann.addAnnotation)
+  const picking = usePicking(isActive, iframeEnabled, ann.addAnnotation)
 
   useCrosshairCursor(isActive)
   useToggle(setIsActive, ann.loadPersisted, ann.setMetadata)
@@ -66,50 +59,25 @@ function useOverlayTheme() {
   return { theme, themeMode, toggleMode }
 }
 
-function usePicking(isActive: boolean, addAnnotation: AddAnnotation) {
-  const [hoveredRect, setHoveredRect] = useState<Rect | null>(null)
-  const clearHover = useCallback(() => setHoveredRect(null), [])
+// Reads the persisted "select inside same-origin iframes" flag and keeps it in
+// sync with changes made from the options page.
+function useIframeSelection(): boolean {
+  const [enabled, setEnabled] = useState(false)
 
   useEffect(() => {
-    if (!isActive) return
-
-    const onMove = (e: MouseEvent) => {
-      if (isFromPlasmoUI(e)) {
-        setHoveredRect(null)
-        return
-      }
-      const r = (e.target as Element).getBoundingClientRect()
-      setHoveredRect({ top: r.top, left: r.left, width: r.width, height: r.height })
-    }
-    const onClick = (e: MouseEvent) => {
-      if (isFromPlasmoUI(e)) return
-      e.preventDefault()
-      e.stopImmediatePropagation()
-      addAnnotation(e.target as Element, e.pageX, e.pageY)
-    }
-    // Suppress mousedown/mouseup/pointerdown/pointerup to prevent JS-driven
-    // navigation and other side effects on page elements.
-    const suppress = (e: Event) => {
-      if (isFromPlasmoUI(e)) return
-      e.preventDefault()
-      e.stopImmediatePropagation()
-    }
-
-    document.addEventListener("mousemove", onMove, true)
-    document.addEventListener("click", onClick, true)
-    for (const type of SUPPRESSED_EVENTS) {
-      document.addEventListener(type, suppress, true)
-    }
-    return () => {
-      document.removeEventListener("mousemove", onMove, true)
-      document.removeEventListener("click", onClick, true)
-      for (const type of SUPPRESSED_EVENTS) {
-        document.removeEventListener(type, suppress, true)
+    loadIframeSelection().then(setEnabled)
+    const onChanged = (changes: {
+      [key: string]: chrome.storage.StorageChange
+    }) => {
+      if (IFRAME_SELECTION_KEY in changes) {
+        setEnabled(changes[IFRAME_SELECTION_KEY].newValue === true)
       }
     }
-  }, [isActive, addAnnotation])
+    chrome.storage.onChanged.addListener(onChanged)
+    return () => chrome.storage.onChanged.removeListener(onChanged)
+  }, [])
 
-  return { hoveredRect, clearHover }
+  return enabled
 }
 
 function useCrosshairCursor(isActive: boolean) {

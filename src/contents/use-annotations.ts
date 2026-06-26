@@ -17,9 +17,11 @@ import type {
   Annotation,
   CollectResult,
   PageMetadata,
+  Rect,
 } from "~lib/types"
 
 import { buildElementInfo, captureScreenshot, cropToElement } from "./overlay-helpers"
+import type { AddAnnotationOptions, Point } from "./use-picking"
 
 type Persist = (anns: Annotation[]) => Promise<void>
 type Mutate = (transform: (prev: Annotation[]) => Annotation[]) => void
@@ -115,24 +117,29 @@ function useAddAnnotation({
   pendingIdRef,
 }: AddDeps) {
   return useCallback(
-    (target: Element, pageX: number, pageY: number) => {
+    (target: Element, point: Point, options?: AddAnnotationOptions) => {
       const info = buildElementInfo(target, generateSelector(target))
       const id = nextIdRef.current++
-      const boundingRect = target.getBoundingClientRect()
+      // For elements inside an iframe the caller passes a rect already
+      // translated to top-viewport coords (matches the captured screenshot).
+      const boundingRect = options?.viewportRect ?? target.getBoundingClientRect()
       const annotation: Annotation = {
         id,
         elementInfo: info,
         frameworkInfo: null,
         componentInfo: null,
         instruction: "",
-        pageX,
-        pageY,
+        pageX: point.pageX,
+        pageY: point.pageY,
         createdAt: Date.now(),
       }
       mutate((prev) => [...prev, annotation])
       setActiveId(id)
       attachScreenshot(id, boundingRect, mutate)
 
+      // Main-World framework collection is not injected inside iframes, so skip
+      // the round-trip for iframe elements (frameworkInfo stays null).
+      if (options?.skipFramework) return
       pendingIdRef.current = id
       window.postMessage(
         { type: "TEGAKARI_COLLECT", selector: info.selector },
@@ -143,7 +150,7 @@ function useAddAnnotation({
   )
 }
 
-function attachScreenshot(id: number, rect: DOMRect, mutate: Mutate) {
+function attachScreenshot(id: number, rect: Rect, mutate: Mutate) {
   captureScreenshot().then(async (full) => {
     if (!full) return
     const cropped = await cropToElement(full, rect)

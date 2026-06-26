@@ -18,6 +18,8 @@ Copy the generated text to your clipboard and paste it straight into AI editors 
 ## Features
 
 - Click multiple elements on a page to select and annotate them
+- Move the selection up/down the DOM tree with `\` (or `↑` / `↓`) to reach elements that are hard to hover directly
+- Select elements inside same-origin iframes too (opt-in via Options — handy for iframe-rendered pages like Google Apps Script web apps)
 - Drop a pin marker on each selected element and enter an instruction in the popover next to it
 - Auto-capture a screenshot when you click an element (cropped around the element)
 - Grab the element's HTML info (tag, attributes, text)
@@ -67,6 +69,7 @@ Install it from the Chrome Web Store:
 
 1. Click the extension icon on any web page (the cursor turns into a crosshair)
 2. Hover over the element you want to inspect to highlight it
+   - If you can't land on the exact element, press `\` (or `↑`) to move the highlight up to the parent, or `↓` to move back down to a child. Once it's on the right element, confirm with `Enter` (or just click)
 3. Click the element to drop a pin marker and open a popover
 4. Enter an instruction in the popover and save with **Save** or `Cmd+Enter`
 5. Keep clicking elements to annotate several at once
@@ -91,6 +94,15 @@ Open the Options page from the settings icon (⚙) in the toolbar to configure a
 - Rules are evaluated top to bottom, and the first match wins
 
 The configured prefix is prepended to the output when you copy.
+
+### Selecting elements inside iframes
+
+Enable "Select inside iframes" under the **Behavior** section of the Options page to also pick elements inside **same-origin iframes**. This is useful for giving feedback on pages that render their content in an iframe, such as Google Apps Script web apps.
+
+- Off by default (not needed on ordinary pages)
+- **Cross-origin iframes** can't be accessed due to browser security and are not selectable
+- iframes nested inside another iframe are not covered (single level only)
+- Framework/component collection is skipped for iframe elements (element info and screenshots are still captured)
 
 If you are not comfortable with regular expressions, the [`tegakari-prefix-rules` skill](skills/tegakari-prefix-rules/SKILL.md) — installable via `gh skill` — generates the import JSON interactively: just answer which URLs your app runs on and the repository name. See [`skills/README.md`](skills/README.md) for details.
 

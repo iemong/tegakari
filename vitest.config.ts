@@ -45,6 +45,7 @@ export default defineConfig({
         "src/contents/overlay.tsx",
         "src/contents/use-overlay.ts",
         "src/contents/use-annotations.ts",
+        "src/contents/use-picking.ts",
         "src/contents/overlay-helpers.ts",
         "src/components/**",
         "src/lib/types.ts",
