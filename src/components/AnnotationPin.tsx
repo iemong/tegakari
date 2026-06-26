@@ -100,6 +100,7 @@ interface PinMarkerProps {
 function PinMarker({ pos, id, isActive, theme, onActivate }: PinMarkerProps) {
   return (
     <div
+      data-testid={`tegakari-pin-${id}`}
       onClick={(e) => {
         e.stopPropagation()
         onActivate()

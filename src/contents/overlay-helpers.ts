@@ -1,5 +1,5 @@
 import { collectElementStyles } from "~lib/style-collector"
-import type { CaptureResponse, ElementInfo } from "~lib/types"
+import type { CaptureResponse, ElementInfo, Rect } from "~lib/types"
 
 const INTERESTING_ATTRS = [
   "class",
@@ -80,7 +80,7 @@ export async function captureScreenshot(): Promise<string | null> {
 /** Crop a screenshot to the element's bounding rect */
 export async function cropToElement(
   fullDataUrl: string,
-  rect: DOMRect,
+  rect: Rect,
   padding = 20
 ): Promise<string> {
   return new Promise((resolve) => {
