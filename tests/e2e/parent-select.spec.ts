@@ -53,7 +53,9 @@ extTest.describe("parent-selection shortcut (#30)", () => {
       await expect(page.getByText("<button>", { exact: true })).toBeVisible()
     }
   )
+})
 
+extTest.describe("parent-selection shortcut — typing safety (#30)", () => {
   extTest(
     "traversal keys do not hijack typing in the instruction popover",
     async ({ context, activateExtension }) => {
