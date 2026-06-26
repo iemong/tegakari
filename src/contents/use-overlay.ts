@@ -5,8 +5,9 @@ import { IFRAME_SELECTION_KEY, loadIframeSelection } from "~lib/settings"
 import { type ThemeMode, darkTheme, lightTheme } from "~lib/theme"
 import type { PageMetadata } from "~lib/types"
 
+import { isFromPlasmoUI } from "./overlay-helpers"
 import { useAnnotations } from "./use-annotations"
-import { usePicking } from "./use-picking"
+import { type AddAnnotation, usePicking } from "./use-picking"
 
 export function useOverlay() {
   const [isActive, setIsActive] = useState(false)
@@ -15,8 +16,15 @@ export function useOverlay() {
   const ann = useAnnotations()
   const picking = usePicking(isActive, iframeEnabled, ann.addAnnotation)
 
+  const activate = useCallback(async () => {
+    setIsActive(true)
+    await ann.loadPersisted()
+    ann.setMetadata(collectPageMetadata(null))
+  }, [ann.loadPersisted, ann.setMetadata])
+
   useCrosshairCursor(isActive)
   useToggle(setIsActive, ann.loadPersisted, ann.setMetadata)
+  useContextSelect(isActive, activate, ann.addAnnotation)
   useScrollTick(isActive, ann.annotations.length)
 
   const close = useCallback(() => {
@@ -120,6 +128,54 @@ function useToggle(
     chrome.runtime.onMessage.addListener(handler)
     return () => chrome.runtime.onMessage.removeListener(handler)
   }, [setIsActive, loadPersisted, setMetadata])
+}
+
+// Right-click → "tegakari: この要素を選択" (#37). The contextmenu listener runs
+// even while the overlay is inactive, recording the last right-clicked element;
+// when the menu item fires, the element is annotated (activating first if
+// needed). Top frame only — right-clicks inside an iframe fire in the iframe
+// document, which this top-frame listener doesn't observe.
+function useContextSelect(
+  isActive: boolean,
+  activate: () => Promise<void>,
+  addAnnotation: AddAnnotation
+) {
+  const lastRef = useRef<{ el: Element; pageX: number; pageY: number } | null>(
+    null
+  )
+  const isActiveRef = useRef(isActive)
+
+  useEffect(() => {
+    isActiveRef.current = isActive
+  }, [isActive])
+
+  useEffect(() => {
+    const onContext = (e: MouseEvent) => {
+      if (isFromPlasmoUI(e)) return
+      lastRef.current = { el: e.target as Element, pageX: e.pageX, pageY: e.pageY }
+    }
+    document.addEventListener("contextmenu", onContext, true)
+
+    const onMessage = (msg: { type?: string }) => {
+      if (msg?.type !== "TEGAKARI_CONTEXT_SELECT") return
+      const last = lastRef.current
+      if (!last) return
+      const point = { pageX: last.pageX, pageY: last.pageY }
+      const opts = { skipFramework: last.el.ownerDocument !== document }
+      if (isActiveRef.current) {
+        addAnnotation(last.el, point, opts)
+      } else {
+        // Load persisted annotations first so the new one isn't overwritten.
+        activate().then(() => addAnnotation(last.el, point, opts))
+      }
+    }
+    chrome.runtime.onMessage.addListener(onMessage)
+
+    return () => {
+      document.removeEventListener("contextmenu", onContext, true)
+      chrome.runtime.onMessage.removeListener(onMessage)
+    }
+  }, [activate, addAnnotation])
 }
 
 function useScrollTick(isActive: boolean, count: number) {

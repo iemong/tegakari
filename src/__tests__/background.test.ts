@@ -4,13 +4,24 @@ const mockSendMessage = vi.fn()
 const mockCaptureVisibleTab = vi.fn()
 const mockTabsCreate = vi.fn()
 const mockGetURL = vi.fn((path: string) => `chrome-extension://test-id/${path}`)
+const mockMenuCreate = vi.fn()
+const mockMenuRemoveAll = vi.fn((cb?: () => void) => cb?.())
 const onClickedListeners: Function[] = []
 const onMessageListeners: Function[] = []
+const onInstalledListeners: Function[] = []
+const onMenuClickedListeners: Function[] = []
 
 vi.stubGlobal("chrome", {
   action: {
     onClicked: {
       addListener: (fn: Function) => onClickedListeners.push(fn),
+    },
+  },
+  contextMenus: {
+    create: mockMenuCreate,
+    removeAll: mockMenuRemoveAll,
+    onClicked: {
+      addListener: (fn: Function) => onMenuClickedListeners.push(fn),
     },
   },
   tabs: {
@@ -22,6 +33,9 @@ vi.stubGlobal("chrome", {
     onMessage: {
       addListener: (fn: Function) => onMessageListeners.push(fn),
     },
+    onInstalled: {
+      addListener: (fn: Function) => onInstalledListeners.push(fn),
+    },
     getURL: mockGetURL,
   },
 })
@@ -32,8 +46,12 @@ beforeEach(async () => {
   mockCaptureVisibleTab.mockReset()
   mockTabsCreate.mockReset()
   mockGetURL.mockClear()
+  mockMenuCreate.mockReset()
+  mockMenuRemoveAll.mockClear()
   onClickedListeners.length = 0
   onMessageListeners.length = 0
+  onInstalledListeners.length = 0
+  onMenuClickedListeners.length = 0
   // @ts-expect-error background.ts is a side-effect-only script, not a module
   await import("../background")
 })
@@ -134,4 +152,40 @@ it("background: should open the options page as a new tab on TEGAKARI_OPEN_OPTIO
   expect(mockTabsCreate).toHaveBeenCalledWith({
     url: "chrome-extension://test-id/options.html",
   })
+})
+
+it("background: creates the context menu on install (after removeAll)", () => {
+  expect(onInstalledListeners).toHaveLength(1)
+  onInstalledListeners[0]()
+  expect(mockMenuRemoveAll).toHaveBeenCalled()
+  expect(mockMenuCreate).toHaveBeenCalledWith(
+    expect.objectContaining({ id: "tegakari-select-element" })
+  )
+})
+
+it("background: forwards a top-frame context-menu click to the tab", () => {
+  expect(onMenuClickedListeners).toHaveLength(1)
+  onMenuClickedListeners[0](
+    { menuItemId: "tegakari-select-element", frameId: 0 },
+    { id: 7 }
+  )
+  expect(mockSendMessage).toHaveBeenCalledWith(7, {
+    type: "TEGAKARI_CONTEXT_SELECT",
+  })
+})
+
+it("background: ignores clicks on other context-menu items", () => {
+  onMenuClickedListeners[0](
+    { menuItemId: "something-else", frameId: 0 },
+    { id: 7 }
+  )
+  expect(mockSendMessage).not.toHaveBeenCalled()
+})
+
+it("background: ignores context-menu clicks inside an iframe (frameId != 0)", () => {
+  onMenuClickedListeners[0](
+    { menuItemId: "tegakari-select-element", frameId: 12 },
+    { id: 7 }
+  )
+  expect(mockSendMessage).not.toHaveBeenCalled()
 })

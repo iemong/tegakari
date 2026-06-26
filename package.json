@@ -56,11 +56,21 @@
     "homepage_url": "https://github.com/iemong/tegakari",
     "permissions": [
       "activeTab",
-      "storage"
+      "storage",
+      "contextMenus"
     ],
     "host_permissions": [
       "<all_urls>"
-    ]
+    ],
+    "commands": {
+      "_execute_action": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+Y",
+          "mac": "Command+Shift+Y"
+        },
+        "description": "Toggle tegakari on the current page"
+      }
+    }
   },
   "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"
 }
