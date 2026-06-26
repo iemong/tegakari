@@ -20,6 +20,8 @@ Copy the generated text to your clipboard and paste it straight into AI editors 
 - Click multiple elements on a page to select and annotate them
 - Move the selection up/down the DOM tree with `\` (or `↑` / `↓`) to reach elements that are hard to hover directly
 - Select elements inside same-origin iframes too (opt-in via Options — handy for iframe-rendered pages like Google Apps Script web apps)
+- Annotate the right-clicked element straight from the "tegakari: この要素を選択" context-menu item (top frame only)
+- Remembers your output format (JSONL / Markdown) across sessions
 - Drop a pin marker on each selected element and enter an instruction in the popover next to it
 - Auto-capture a screenshot when you click an element (cropped around the element)
 - Grab the element's HTML info (tag, attributes, text)
@@ -68,6 +70,7 @@ Install it from the Chrome Web Store:
 ## Usage
 
 1. Click the extension icon on any web page (the cursor turns into a crosshair)
+   - You can also toggle it with the keyboard shortcut `Ctrl+Shift+Y` (`Command+Shift+Y` on Mac). Rebind it from `chrome://extensions/shortcuts`
 2. Hover over the element you want to inspect to highlight it
    - If you can't land on the exact element, press `\` (or `↑`) to move the highlight up to the parent, or `↓` to move back down to a child. Once it's on the right element, confirm with `Enter` (or just click)
 3. Click the element to drop a pin marker and open a popover
