@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>tegakari iframe fixture</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 24px; }
+      /* Offset the iframe so the coordinate translation is non-trivial. */
+      #gas-frame { margin: 60px 0 0 40px; width: 420px; height: 320px; border: 0; }
+    </style>
+  </head>
+  <body>
+    <h1 id="page-title">Host page</h1>
+    <p id="host-text">A same-origin iframe is embedded below.</p>
+    <iframe id="gas-frame" src="/iframe-child.html"></iframe>
+  </body>
+</html>

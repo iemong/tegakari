@@ -1,12 +1,15 @@
 import { AppearanceSection } from "./options/components/appearance-section"
+import { BehaviorSection } from "./options/components/behavior-section"
 import { OptionsFooter } from "./options/components/options-footer"
 import { OptionsHeader } from "./options/components/options-header"
 import { PrefixRulesSection } from "./options/components/prefix-rules-section"
 import { SettingsSection } from "./options/components/settings-section"
+import { useIframeSelection } from "./options/hooks/use-iframe-selection"
 import { useStoredTheme } from "./options/hooks/use-stored-theme"
 
 export default function OptionsPage() {
   const { theme, mode, toggleMode } = useStoredTheme()
+  const { enabled: iframeEnabled, toggle: toggleIframe } = useIframeSelection()
 
   return (
     <div
@@ -22,6 +25,14 @@ export default function OptionsPage() {
 
         <SettingsSection title="Appearance" theme={theme}>
           <AppearanceSection theme={theme} mode={mode} onToggle={toggleMode} />
+        </SettingsSection>
+
+        <SettingsSection title="Behavior" theme={theme}>
+          <BehaviorSection
+            theme={theme}
+            iframeEnabled={iframeEnabled}
+            onToggleIframe={toggleIframe}
+          />
         </SettingsSection>
 
         <PrefixRulesSection theme={theme} />
