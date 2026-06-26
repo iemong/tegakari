@@ -1,12 +1,11 @@
 export function generateSelector(element: Element): string {
   const parts: string[] = []
   let current: Element | null = element
+  // Use the element's own document so selectors generated for elements inside
+  // a same-origin iframe stop at the iframe's <body>, not the top document's.
+  const doc = element.ownerDocument
 
-  while (
-    current &&
-    current !== document.body &&
-    current !== document.documentElement
-  ) {
+  while (current && current !== doc.body && current !== doc.documentElement) {
     if (current.id) {
       parts.unshift(`#${CSS.escape(current.id)}`)
       break
