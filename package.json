@@ -1,7 +1,7 @@
 {
   "name": "tegakari",
   "displayName": "tegakari",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Web要素を選択して、HTML・フレームワーク・コンポーネント情報とスクリーンショットをAIエディタ用にコピーするChrome拡張",
   "homepage": "https://github.com/iemong/tegakari",
   "license": "MIT",
