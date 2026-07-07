@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   IFRAME_SELECTION_KEY,
+  OUTPUT_FORMAT_KEY,
   loadIframeSelection,
+  loadOutputFormat,
   setIframeSelection,
+  setOutputFormat,
 } from "../settings"
 
 type StorageRecord = Record<string, unknown>
@@ -46,5 +49,26 @@ describe("settings: iframe selection", () => {
   it("persists the flag", () => {
     setIframeSelection(true)
     expect(storageSet).toHaveBeenCalledWith({ [IFRAME_SELECTION_KEY]: true })
+  })
+})
+
+describe("settings: output format", () => {
+  it("defaults to jsonl when unset", async () => {
+    await expect(loadOutputFormat()).resolves.toBe("jsonl")
+  })
+
+  it("reads markdown when persisted", async () => {
+    storage[OUTPUT_FORMAT_KEY] = "markdown"
+    await expect(loadOutputFormat()).resolves.toBe("markdown")
+  })
+
+  it("falls back to jsonl for unknown values", async () => {
+    storage[OUTPUT_FORMAT_KEY] = "yaml"
+    await expect(loadOutputFormat()).resolves.toBe("jsonl")
+  })
+
+  it("persists the chosen format", () => {
+    setOutputFormat("markdown")
+    expect(storageSet).toHaveBeenCalledWith({ [OUTPUT_FORMAT_KEY]: "markdown" })
   })
 })

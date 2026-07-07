@@ -30,7 +30,7 @@ export default function Overlay() {
   return (
     <ThemeContext.Provider value={{ theme, mode: themeMode, toggleMode }}>
       {isActive && picking.hoveredRect && (
-        <HighlightBox rect={picking.hoveredRect} />
+        <HighlightBox rect={picking.hoveredRect} label={picking.hoveredLabel} />
       )}
 
       {ann.annotations.map((annotation) => (

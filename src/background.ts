@@ -4,6 +4,34 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 })
 
+const CONTEXT_MENU_ID = "tegakari-select-element"
+
+// Context menu entry to annotate the right-clicked element (#37). The menu is
+// (re)created in onInstalled — calling `contextMenus.create` at the top level
+// would throw "duplicate id" on every MV3 service-worker restart.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: CONTEXT_MENU_ID,
+      title: "tegakari: この要素を選択",
+      contexts: ["all"],
+    })
+  })
+})
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  // frameId 0 = top frame only. Right-clicks inside an iframe aren't observed
+  // by the top-frame content script, so ignore them rather than annotate a
+  // stale element from a previous top-frame right-click.
+  if (
+    info.menuItemId === CONTEXT_MENU_ID &&
+    info.frameId === 0 &&
+    tab?.id
+  ) {
+    chrome.tabs.sendMessage(tab.id, { type: "TEGAKARI_CONTEXT_SELECT" })
+  }
+})
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "TEGAKARI_OPEN_OPTIONS") {
     // `chrome.runtime.openOptionsPage()` silently no-ops in some Chromium
