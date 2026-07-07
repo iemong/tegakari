@@ -7,7 +7,22 @@ if (typeof globalThis.CSS === "undefined") {
   }
 }
 
-import { generateSelector } from "../selector"
+import { generateSelector, shortSelectorHint } from "../selector"
+
+it("shortSelectorHint: prefers id", () => {
+  document.body.innerHTML = '<div id="app" class="card box"></div>'
+  expect(shortSelectorHint(document.querySelector("#app")!)).toBe("#app")
+})
+
+it("shortSelectorHint: falls back to the first class", () => {
+  document.body.innerHTML = '<div class="card box"></div>'
+  expect(shortSelectorHint(document.querySelector("div")!)).toBe(".card")
+})
+
+it("shortSelectorHint: returns empty string with no id or class", () => {
+  document.body.innerHTML = "<section></section>"
+  expect(shortSelectorHint(document.querySelector("section")!)).toBe("")
+})
 
 it("generateSelector: should return id selector when element has id", () => {
   document.body.innerHTML = '<div id="app"><span></span></div>'

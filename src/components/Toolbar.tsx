@@ -13,6 +13,10 @@ import { useClipboard } from "~hooks/use-clipboard"
 import { generateBatchJsonl } from "~lib/jsonl-generator"
 import { generateBatchMarkdown } from "~lib/markdown-generator"
 import { findMatchingPrefix, loadPrefixRules } from "~lib/prefix-rules"
+import {
+  loadOutputFormat,
+  setOutputFormat as persistOutputFormat,
+} from "~lib/settings"
 import { type Theme, useTheme } from "~lib/theme"
 import type { Annotation, OutputFormat, PageMetadata } from "~lib/types"
 
@@ -81,7 +85,7 @@ export default function Toolbar(props: Props) {
 function useToolbar(props: Props) {
   const { copy } = useClipboard()
   const [inboxOpen, setInboxOpen] = useState(false)
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>("jsonl")
+  const [outputFormat, setOutputFormat] = useStoredOutputFormat()
   const toolbarRef = useRef<HTMLDivElement>(null)
   const { annotations, metadata } = props
 
@@ -118,6 +122,26 @@ function useToolbar(props: Props) {
     matchedPrefix,
     ...actions,
   }
+}
+
+// Output format persists across sessions so users who prefer Markdown don't
+// have to re-toggle from the JSONL default every time.
+function useStoredOutputFormat(): [
+  OutputFormat,
+  (format: OutputFormat) => void,
+] {
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>("jsonl")
+
+  useEffect(() => {
+    loadOutputFormat().then(setOutputFormat)
+  }, [])
+
+  const update = useCallback((format: OutputFormat) => {
+    setOutputFormat(format)
+    persistOutputFormat(format)
+  }, [])
+
+  return [outputFormat, update]
 }
 
 // Load prefix rules on mount + whenever storage changes.
