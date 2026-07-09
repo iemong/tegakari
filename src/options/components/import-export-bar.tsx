@@ -68,6 +68,7 @@ export function ImportExportBar({ rules, theme, onImport }: Props) {
           type="file"
           accept="application/json,.json"
           hidden
+          data-testid="prefix-rules-import-input"
           onChange={handleImportFile}
         />
       </div>

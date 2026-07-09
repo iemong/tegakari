@@ -101,7 +101,7 @@ test("Options page: prefix rules import / export — Import merges JSON rules in
   ]
 
   // The file input is hidden — Playwright's setInputFiles works regardless.
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByTestId("prefix-rules-import-input").setInputFiles({
     name: "rules.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(importPayload)),
@@ -133,7 +133,7 @@ test("Options page: prefix rules import / export — Import surfaces an error ba
   const page = await context.newPage()
   await page.goto(optionsUrl(extensionId))
 
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByTestId("prefix-rules-import-input").setInputFiles({
     name: "broken.json",
     mimeType: "application/json",
     buffer: Buffer.from("this is not valid json {"),
@@ -152,7 +152,7 @@ test("Options page: prefix rules import / export — Import normalizes full-URL 
   const page = await context.newPage()
   await page.goto(optionsUrl(extensionId))
 
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByTestId("prefix-rules-import-input").setInputFiles({
     name: "with-urls.json",
     mimeType: "application/json",
     buffer: Buffer.from(
@@ -201,7 +201,7 @@ test("Options page: prefix rules import / export — Round trip: export → wipe
   await expect(page.getByText("No rules yet. Add one below.")).toBeVisible()
 
   // 3) Import the file we just exported.
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByTestId("prefix-rules-import-input").setInputFiles({
     name: "roundtrip.json",
     mimeType: "application/json",
     buffer: Buffer.from(exported),

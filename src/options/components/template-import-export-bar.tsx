@@ -73,6 +73,7 @@ export function TemplateImportExportBar({ templates, theme, onImport }: Props) {
           type="file"
           accept="application/json,.json"
           hidden
+          data-testid="templates-import-input"
           onChange={handleImportFile}
         />
       </div>
