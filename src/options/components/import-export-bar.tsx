@@ -6,6 +6,7 @@ import {
   useState,
 } from "react"
 
+import { t } from "~lib/i18n"
 import { parseRules, serializeRules } from "~lib/prefix-rules"
 import type { Theme } from "~lib/theme"
 import type { PrefixRule } from "~lib/types"
@@ -51,16 +52,16 @@ export function ImportExportBar({ rules, theme, onImport }: Props) {
           type="button"
           onClick={handleImportClick}
           style={barButtonStyle(theme)}
-          title="Import rules from a JSON file (existing rules with the same pattern will be overwritten)">
-          Import
+          title={t("options_import_title")}>
+          {t("options_import_button")}
         </button>
         <button
           type="button"
           onClick={handleExport}
           disabled={disabled}
           style={barButtonStyle(theme, disabled)}
-          title="Download all rules as JSON">
-          Export
+          title={t("options_export_title")}>
+          {t("options_export_button")}
         </button>
         <input
           ref={fileInputRef}
@@ -109,7 +110,10 @@ function downloadRulesFile(rules: PrefixRule[]): Message {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
-  return { tone: "success", text: `Exported ${rules.length} rule(s).` }
+  return {
+    tone: "success",
+    text: t("options_export_success", String(rules.length)),
+  }
 }
 
 async function readRulesFile(
@@ -120,14 +124,18 @@ async function readRulesFile(
   try {
     text = await file.text()
   } catch (e) {
-    return { tone: "error", text: `Failed to read file: ${(e as Error).message}` }
+    return {
+      tone: "error",
+      text: t("options_import_read_error", (e as Error).message),
+    }
   }
 
   const { rules: imported, errors } = parseRules(text)
   if (imported.length === 0) {
+    const detail = errors.join("; ") || t("options_import_no_valid_rules")
     return {
       tone: "error",
-      text: `Import failed. ${errors.join("; ") || "No valid rules found."}`,
+      text: `${t("options_import_failed_prefix")} ${detail}`,
     }
   }
 
@@ -135,10 +143,17 @@ async function readRulesFile(
   if (errors.length > 0) {
     return {
       tone: "warning",
-      text: `Imported ${imported.length} rule(s); skipped ${errors.length}: ${errors.join("; ")}`,
+      text: t("options_import_partial", [
+        String(imported.length),
+        String(errors.length),
+        errors.join("; "),
+      ]),
     }
   }
-  return { tone: "success", text: `Imported ${imported.length} rule(s).` }
+  return {
+    tone: "success",
+    text: t("options_import_success", String(imported.length)),
+  }
 }
 
 function barRowStyle(hasMessage: boolean): CSSProperties {

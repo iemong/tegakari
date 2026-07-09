@@ -1,5 +1,6 @@
 import iconUrl from "data-base64:../../../assets/icon.png"
 
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 
 export function OptionsHeader({ theme }: { theme: Theme }) {
@@ -30,7 +31,7 @@ export function OptionsHeader({ theme }: { theme: Theme }) {
         <span style={{ color: theme.accent }}>tegakari</span>
         <span
           style={{ fontSize: 15, fontWeight: 400, color: theme.textMuted }}>
-          Settings
+          {t("options_header_settings")}
         </span>
       </h1>
     </div>

@@ -1,3 +1,4 @@
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 
 import { usePrefixRulesManager } from "../hooks/use-prefix-rules-manager"
@@ -14,7 +15,7 @@ export function PrefixRulesSection({ theme }: { theme: Theme }) {
 
   return (
     <SettingsSection
-      title="Prefix Rules"
+      title={t("options_section_prefix_rules")}
       theme={theme}
       description={<PrefixRulesDescription theme={theme} />}>
       <ImportExportBar
@@ -52,7 +53,7 @@ export function PrefixRulesSection({ theme }: { theme: Theme }) {
 function PrefixRulesDescription({ theme }: { theme: Theme }) {
   return (
     <>
-      URL patterns are matched against the hostname (e.g.,{" "}
+      {t("options_prefix_rules_desc_prefix")}{" "}
       <code
         style={{
           backgroundColor: theme.codeBg,
@@ -62,8 +63,7 @@ function PrefixRulesDescription({ theme }: { theme: Theme }) {
         }}>
         localhost:3000
       </code>
-      ). Enable regex to match against the full URL. Rules are evaluated
-      top-to-bottom; first match wins.
+      {t("options_prefix_rules_desc_suffix")}
     </>
   )
 }

@@ -54,6 +54,7 @@
     ]
   },
   "manifest": {
+    "default_locale": "en",
     "homepage_url": "https://github.com/iemong/tegakari",
     "permissions": [
       "activeTab",

@@ -1,13 +1,25 @@
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 
-const EXAMPLES = [
-  ["localhost:3000", "Host", "http://localhost:3000/*"],
-  ["example.com", "Host", "*.example.com/*"],
-  ["https?://staging\\.example\\.com/app/.*", "Regex", "Staging app pages"],
-  ["vercel\\.app", "Regex", "Any Vercel deployment"],
-]
+function buildExamples(): [pattern: string, type: string, matches: string][] {
+  return [
+    ["localhost:3000", t("options_examples_type_host"), "http://localhost:3000/*"],
+    ["example.com", t("options_examples_type_host"), "*.example.com/*"],
+    [
+      "https?://staging\\.example\\.com/app/.*",
+      t("options_examples_type_regex"),
+      t("options_examples_match_staging"),
+    ],
+    [
+      "vercel\\.app",
+      t("options_examples_type_regex"),
+      t("options_examples_match_vercel"),
+    ],
+  ]
+}
 
 export function ExamplesTable({ theme }: { theme: Theme }) {
+  const examples = buildExamples()
   return (
     <div
       style={{
@@ -20,7 +32,7 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
       <div
         style={{ fontWeight: 600, marginBottom: 8, color: theme.textSecondary }}
       >
-        Examples
+        {t("options_examples_title")}
       </div>
       <table style={{ borderCollapse: "collapse", width: "100%" }}>
         <thead>
@@ -32,7 +44,7 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
                 color: theme.textSecondary,
               }}
             >
-              Pattern
+              {t("options_examples_col_pattern")}
             </th>
             <th
               style={{
@@ -41,7 +53,7 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
                 color: theme.textSecondary,
               }}
             >
-              Type
+              {t("options_examples_col_type")}
             </th>
             <th
               style={{
@@ -50,12 +62,12 @@ export function ExamplesTable({ theme }: { theme: Theme }) {
                 color: theme.textSecondary,
               }}
             >
-              Matches
+              {t("options_examples_col_matches")}
             </th>
           </tr>
         </thead>
         <tbody>
-          {EXAMPLES.map(([pattern, type, matches]) => (
+          {examples.map(([pattern, type, matches]) => (
             <tr key={pattern}>
               <td style={{ padding: "4px 12px 4px 0" }}>
                 <code

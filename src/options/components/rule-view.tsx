@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react"
 
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 import type { PrefixRule } from "~lib/types"
 
@@ -42,10 +43,10 @@ export function RuleView({
 
       <div style={s.actions}>
         <button onClick={() => onStartEdit(idx)} style={s.editButton}>
-          Edit
+          {t("options_common_edit")}
         </button>
         <button onClick={() => onDelete(rule.pattern)} style={s.deleteButton}>
-          Delete
+          {t("options_common_delete")}
         </button>
       </div>
     </div>
@@ -94,7 +95,7 @@ function RegexBadge({ theme }: { theme: Theme }) {
         padding: "1px 6px",
         borderRadius: 4,
       }}>
-      regex
+      {t("options_rule_view_regex_badge")}
     </span>
   )
 }

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react"
 
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 import type { PrefixRule } from "~lib/types"
 
@@ -100,7 +101,7 @@ function EmptyRulesState({ theme }: { theme: Theme }) {
         border: `1px dashed ${theme.border}`,
         borderRadius: 10,
       }}>
-      No rules yet. Add one below.
+      {t("options_rule_list_empty")}
     </div>
   )
 }

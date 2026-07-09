@@ -1,0 +1,86 @@
+{
+  "options_common_cancel": { "message": "キャンセル" },
+  "options_common_save": { "message": "保存" },
+  "options_common_edit": { "message": "編集" },
+  "options_common_delete": { "message": "削除" },
+  "options_add_rule_title": { "message": "ルールを追加" },
+  "options_add_rule_submit": { "message": "追加" },
+  "options_add_rule_regex_label": { "message": "正規表現（URL全体と照合）" },
+  "options_add_rule_pattern_placeholder_regex": {
+    "message": "https?://example\\.com/.*"
+  },
+  "options_add_rule_pattern_placeholder_host": {
+    "message": "example.com（URLを貼り付けてもOK）"
+  },
+  "options_field_pattern_placeholder": { "message": "パターン" },
+  "options_field_prefix_placeholder": { "message": "プレフィックス" },
+  "options_field_regex_label": { "message": "正規表現" },
+  "options_section_appearance": { "message": "外観" },
+  "options_appearance_theme_label": { "message": "テーマ" },
+  "options_appearance_theme_help": {
+    "message": "ライトモードとダークモードを切り替えます。"
+  },
+  "options_appearance_theme_light": { "message": "ライト" },
+  "options_appearance_theme_dark": { "message": "ダーク" },
+  "options_appearance_current_light": { "message": "現在はライトモードです。" },
+  "options_appearance_current_dark": { "message": "現在はダークモードです。" },
+  "options_section_behavior": { "message": "動作" },
+  "options_behavior_iframe_label": { "message": "iframe内の要素も選択" },
+  "options_behavior_iframe_help": {
+    "message": "同一オリジンのiframe内の要素も選択できます（例: Google Apps ScriptのWebアプリ）。クロスオリジンのiframeにはアクセスできません。"
+  },
+  "options_header_settings": { "message": "設定" },
+  "options_footer_message": {
+    "message": "tegakariは無料のオープンソースソフトウェアです。役に立ったら、開発の継続をご支援ください。"
+  },
+  "options_footer_sponsor": { "message": "♥ GitHubでスポンサーになる" },
+  "options_footer_repo": { "message": "★ GitHubリポジトリ" },
+  "options_section_prefix_rules": { "message": "プレフィックスルール" },
+  "options_prefix_rules_desc_prefix": {
+    "message": "URLパターンはホスト名と照合されます（例："
+  },
+  "options_prefix_rules_desc_suffix": {
+    "message": "）。正規表現を有効にすると、URL全体と照合できます。ルールは上から順に評価され、最初に一致したものが適用されます。"
+  },
+  "options_rule_list_empty": {
+    "message": "まだルールがありません。下から追加してください。"
+  },
+  "options_rule_view_regex_badge": { "message": "正規表現" },
+  "options_examples_title": { "message": "設定例" },
+  "options_examples_col_pattern": { "message": "パターン" },
+  "options_examples_col_type": { "message": "種類" },
+  "options_examples_col_matches": { "message": "マッチ対象" },
+  "options_examples_type_host": { "message": "ホスト" },
+  "options_examples_type_regex": { "message": "正規表現" },
+  "options_examples_match_staging": {
+    "message": "ステージング環境のアプリページ"
+  },
+  "options_examples_match_vercel": { "message": "任意のVercelデプロイ" },
+  "options_import_button": { "message": "インポート" },
+  "options_export_button": { "message": "エクスポート" },
+  "options_import_title": {
+    "message": "JSONファイルからルールをインポートします（同じパターンの既存ルールは上書きされます）"
+  },
+  "options_export_title": {
+    "message": "すべてのルールをJSONとしてダウンロード"
+  },
+  "options_export_success": { "message": "$1件のルールをエクスポートしました。" },
+  "options_import_read_error": {
+    "message": "ファイルの読み込みに失敗しました: $1"
+  },
+  "options_import_failed_prefix": { "message": "インポートに失敗しました。" },
+  "options_import_no_valid_rules": {
+    "message": "有効なルールが見つかりませんでした。"
+  },
+  "options_import_partial": {
+    "message": "$1件のルールをインポートしました（$2件をスキップ: $3）"
+  },
+  "options_import_success": { "message": "$1件のルールをインポートしました。" },
+  "options_error_pattern_prefix_required": {
+    "message": "パターンとプレフィックスは必須です"
+  },
+  "options_error_invalid_regex": { "message": "正規表現が無効です: $1" },
+  "options_error_duplicate_pattern": {
+    "message": "このパターンのルールは既に存在します"
+  }
+}
