@@ -110,6 +110,12 @@ function buildElementEntry(el: ElementInfo): Record<string, unknown> {
   if (el.styles && Object.keys(el.styles).length > 0) {
     element.styles = el.styles
   }
+  if (el.cssRules && el.cssRules.length > 0) {
+    element.cssRules = el.cssRules
+  }
+  if (el.customProperties && Object.keys(el.customProperties).length > 0) {
+    element.customProperties = el.customProperties
+  }
   return element
 }
 

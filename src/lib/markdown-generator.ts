@@ -2,6 +2,7 @@ import { formatSourceLocation } from "./source-location"
 import type {
   BatchInput,
   ComponentInfo,
+  CssRuleInfo,
   ElementInfo,
   FrameworkInfo,
   MarkdownInput,
@@ -146,6 +147,46 @@ export function elementStyleLines(el: ElementInfo): string[] {
   return lines
 }
 
+/**
+ * CSS provenance lines: which same-origin stylesheet rule(s) matched the
+ * element, and any CSS custom properties their declarations reference.
+ * Reused by the XML `<element>` tag. Empty when nothing was collected
+ * (cross-origin-only stylesheets, no CSSOM match, etc.).
+ */
+export function elementCssProvenanceLines(el: ElementInfo): string[] {
+  return [...cssRuleLines(el.cssRules ?? []), ...cssVariableLines(el.customProperties ?? {})]
+}
+
+function cssRuleLines(rules: CssRuleInfo[]): string[] {
+  if (rules.length === 0) return []
+  const lines = [`- **CSS Rules**:`]
+  for (const rule of rules) {
+    const location = rule.media ? `${rule.source}, ${rule.media}` : rule.source
+    lines.push(`  - \`${rule.selector}\` (${location})`)
+    for (const decl of rule.declarations) {
+      lines.push(`    - ${formatDeclaration(decl)}`)
+    }
+  }
+  return lines
+}
+
+function cssVariableLines(customProperties: Record<string, string>): string[] {
+  const entries = Object.entries(customProperties)
+  if (entries.length === 0) return []
+  const lines = [`- **CSS Variables**:`]
+  for (const [name, value] of entries) {
+    lines.push(`  - ${name}: \`${value}\``)
+  }
+  return lines
+}
+
+/** "prop: value" -> "prop: `value`" (declarations are pre-formatted strings, see css-provenance.ts) */
+function formatDeclaration(decl: string): string {
+  const idx = decl.indexOf(": ")
+  if (idx === -1) return decl
+  return `${decl.slice(0, idx)}: \`${decl.slice(idx + 2)}\``
+}
+
 /** Minimal element line set: selector, tag, class (if any), text. */
 function elementMinimalLines(el: ElementInfo): string[] {
   const lines = [
@@ -166,7 +207,11 @@ function elementLines(
   option: MarkdownSectionOptions["element"] = "full"
 ): string[] {
   if (option === "minimal") return elementMinimalLines(el)
-  return [...elementAttributeLines(el), ...elementStyleLines(el)]
+  return [
+    ...elementAttributeLines(el),
+    ...elementStyleLines(el),
+    ...elementCssProvenanceLines(el),
+  ]
 }
 
 const COMPONENT_FRAMEWORK_LABELS: Record<ComponentInfo["framework"], string> = {

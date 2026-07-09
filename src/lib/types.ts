@@ -34,6 +34,22 @@ export interface ComponentInfo {
   source?: SourceLocation
 }
 
+/**
+ * A same-origin CSS rule (from `document.styleSheets`) that matches the
+ * selected element, i.e. its "provenance" — which file/selector a computed
+ * style value actually came from. See `~lib/css-provenance`.
+ */
+export interface CssRuleInfo {
+  /** The rule's `selectorText`, e.g. ".btn-primary:hover" */
+  selector: string
+  /** Stylesheet filename (e.g. "app.css") or "inline" for `<style>` tags */
+  source: string
+  /** "property: value" pairs the rule declares (`!important` kept in the value) */
+  declarations: string[]
+  /** `@media`/`@supports` condition text, if the rule is nested inside one */
+  media?: string
+}
+
 export interface ElementInfo {
   selector: string
   tag: string
@@ -41,6 +57,10 @@ export interface ElementInfo {
   attributes: Record<string, string>
   /** Effective styles diffed against tag defaults (curated subset) */
   styles?: Record<string, string>
+  /** Same-origin CSS rules matching this element, newest-first (max 10) */
+  cssRules?: CssRuleInfo[]
+  /** Resolved values for CSS custom properties referenced by cssRules (max 10) */
+  customProperties?: Record<string, string>
 }
 
 export interface Rect {

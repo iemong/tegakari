@@ -1,10 +1,16 @@
 import {
   componentLines,
   elementAttributeLines,
+  elementCssProvenanceLines,
   elementStyleLines,
   pageContextLines,
 } from "./markdown-generator"
-import type { BatchInput, ComponentInfo, ElementInfo, MarkdownInput } from "./types"
+import type {
+  BatchInput,
+  ComponentInfo,
+  ElementInfo,
+  MarkdownInput,
+} from "./types"
 
 /**
  * Marker line that opens every `claude-code` preset payload. This exact
@@ -90,6 +96,7 @@ function annotationXmlLines(annotation: XmlAnnotationInput): string[] {
   lines.push(
     "<element>",
     ...elementAttributeLines(annotation.elementInfo),
+    ...elementCssProvenanceLines(annotation.elementInfo),
     "</element>"
   )
   if (annotation.componentInfo) {
