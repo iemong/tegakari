@@ -1,0 +1,98 @@
+name: Bug report
+description: Report something that isn't working as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out as much
+        of this as you can — it makes it much faster to reproduce and fix.
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: tegakari version
+      description: >
+        Chrome Web Store version number, or the git commit/branch if you
+        built from source. Find it on the extension's card in
+        chrome://extensions.
+      placeholder: "0.0.4"
+    validations:
+      required: true
+
+  - type: input
+    id: chrome-version
+    attributes:
+      label: Chrome version
+      description: Find it at chrome://settings/help
+      placeholder: "126.0.6478.126"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework of the page you were on
+      description: >
+        Which framework (if any) does the web page you were annotating use?
+      options:
+        - React
+        - Vue 2
+        - Vue 3
+        - Next.js
+        - Nuxt
+        - Other / plain HTML
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: page-url
+    attributes:
+      label: Page URL (optional)
+      description: >
+        If the page is public, sharing the URL helps a lot. Leave blank if
+        it's private/internal.
+      placeholder: "https://example.com/dashboard"
+    validations:
+      required: false
+
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the issue?
+      placeholder: |
+        1. Open the page and click the extension icon
+        2. Hover over the "Save" button
+        3. Click it to drop a pin
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened? Include error messages/screenshots if you have them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: >
+        Anything else that might help — console errors, whether it happens
+        inside an iframe, whether the page is behind auth, etc.
+    validations:
+      required: false

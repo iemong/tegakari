@@ -1,0 +1,65 @@
+name: Feature request
+description: Suggest an idea or improvement for tegakari
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! To help us evaluate it, please describe
+        the problem you're trying to solve, not just the solution you have
+        in mind — sometimes there's a simpler fix.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: >
+        What are you doing when you run into this? What's missing or
+        annoying about the current behavior?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like tegakari to do instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: >
+        Any workarounds you're currently using, or other approaches you
+        considered?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area does this touch?
+      description: Pick the closest match, or "Not sure" if unclear.
+      options:
+        - Element selection / highlighting
+        - Annotations (pins, popover, inbox)
+        - Output format (Markdown / JSONL)
+        - Framework detection (React / Vue / Next.js / Nuxt)
+        - Prefix rules
+        - Options / settings page
+        - Agent Skills
+        - Other
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Screenshots, mockups, links to related issues, etc.
+    validations:
+      required: false
