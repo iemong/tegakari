@@ -120,7 +120,7 @@ If you are not comfortable with regular expressions, the [`tegakari-prefix-rules
 
 ## Output examples
 
-The examples below show the full Markdown/JSONL formats. For the output presets (Claude Code / Cursor / Minimal), custom templates, quick-instruction tags, style deltas, CSS provenance, and relations, see [`docs/output-spec.md`](docs/output-spec.md).
+The examples below show the full Markdown/JSONL formats. For the output presets (Claude Code / Cursor / Minimal), custom templates, quick-instruction tags, style deltas, CSS provenance, and relations, see [`docs/output-spec.en.md`](docs/output-spec.en.md).
 
 ### Markdown format
 

@@ -1,5 +1,7 @@
 # tegakari 出力仕様書
 
+English version: [output-spec.en.md](./output-spec.en.md)
+
 ## 概要
 
 Chrome拡張機能「tegakari」は、Webページ上の要素を選択し、そのコンテキスト情報をMarkdownまたはJSONL形式で生成する。
