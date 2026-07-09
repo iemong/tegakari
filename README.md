@@ -8,6 +8,8 @@
 **English** | [日本語](./README.ja.md)
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/phobgclkkcnkmmfnmloganoefjifnidp?label=Chrome%20Web%20Store&color=2563eb)](https://chromewebstore.google.com/detail/tegakari/phobgclkkcnkmmfnmloganoefjifnidp)
+[![CI](https://github.com/iemong/tegakari/actions/workflows/ci.yml/badge.svg)](https://github.com/iemong/tegakari/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2563eb)](LICENSE)
 
 </div>
 
@@ -15,8 +17,11 @@ A Chrome extension that lets you select elements on any web page and capture the
 
 Copy the generated text to your clipboard and paste it straight into AI editors like Claude Code or Cursor.
 
+![tegakari demo](docs/assets/demo.gif)
+
 ## Features
 
+- 🧩 **Agent Skills included** — install with `gh skill` so agents like Claude Code can work with tegakari's settings and output intelligently. See [`skills/README.md`](skills/README.md)
 - Click multiple elements on a page to select and annotate them
 - Move the selection up/down the DOM tree with `\` (or `↑` / `↓`) to reach elements that are hard to hover directly
 - Select elements inside same-origin iframes too (opt-in via Options — handy for iframe-rendered pages like Google Apps Script web apps)
@@ -170,6 +175,12 @@ pnpm build      # Production build
 pnpm test       # Run tests
 pnpm package    # ZIP packaging (for distribution)
 ```
+
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome. Small,
+focused PRs are preferred over large ones. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the development setup, quality gates, and PR guidelines.
 
 ## Support development
 
