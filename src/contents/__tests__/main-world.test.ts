@@ -9,9 +9,13 @@ vi.mock("~lib/react-collector", () => ({
 vi.mock("~lib/vue-collector", () => ({
   collectVueComponent: vi.fn(),
 }))
+vi.mock("~lib/svelte-collector", () => ({
+  collectSvelteComponent: vi.fn(),
+}))
 
 import { detectFramework } from "~lib/framework-detector"
 import { collectReactComponent } from "~lib/react-collector"
+import { collectSvelteComponent } from "~lib/svelte-collector"
 import { collectVueComponent } from "~lib/vue-collector"
 
 function createMessageEvent(data: unknown, fromWindow = true): MessageEvent {
@@ -30,9 +34,9 @@ beforeEach(async () => {
   vi.mocked(detectFramework).mockReset()
   vi.mocked(collectReactComponent).mockReset()
   vi.mocked(collectVueComponent).mockReset()
+  vi.mocked(collectSvelteComponent).mockReset()
   postMessageSpy.mockReset()
 
-  const originalPostMessage = window.postMessage.bind(window)
   window.postMessage = postMessageSpy
 
   const addEventListenerSpy = vi.spyOn(window, "addEventListener")
@@ -130,6 +134,40 @@ it("main-world: should handle TEGAKARI_COLLECT with Vue framework", () => {
       type: "TEGAKARI_RESULT",
       framework: { framework: "Vue", metaFramework: null },
       component: { framework: "vue", hierarchy: ["App"] },
+    },
+    "*"
+  )
+})
+
+it("main-world: should handle TEGAKARI_COLLECT with Svelte framework", () => {
+  document.body.innerHTML = '<div id="app"></div>'
+  vi.mocked(detectFramework).mockReturnValue({
+    framework: "Svelte 5",
+    metaFramework: null,
+  })
+  vi.mocked(collectSvelteComponent).mockReturnValue({
+    framework: "svelte",
+    hierarchy: ["+page", "Widget"],
+    source: { file: "src/lib/Widget.svelte", line: 3 },
+  })
+
+  const event = createMessageEvent({
+    type: "TEGAKARI_COLLECT",
+    selector: "#app",
+  })
+
+  messageHandler(event)
+
+  expect(collectSvelteComponent).toHaveBeenCalled()
+  expect(postMessageSpy).toHaveBeenCalledWith(
+    {
+      type: "TEGAKARI_RESULT",
+      framework: { framework: "Svelte 5", metaFramework: null },
+      component: {
+        framework: "svelte",
+        hierarchy: ["+page", "Widget"],
+        source: { file: "src/lib/Widget.svelte", line: 3 },
+      },
     },
     "*"
   )

@@ -16,8 +16,8 @@ export interface CollectResult {
 }
 
 export interface FrameworkInfo {
-  framework: string | null // "React" | "Vue"
-  metaFramework: string | null // "Next.js (App Router)" | "Nuxt"
+  framework: string | null // "React" | "Vue" | "Svelte" | "Svelte 5" | "Svelte 4"
+  metaFramework: string | null // "Next.js (App Router)" | "Nuxt" | "SvelteKit"
 }
 
 /** Source location of the selected element's JSX/SFC (dev builds only) */
@@ -27,7 +27,7 @@ export interface SourceLocation {
 }
 
 export interface ComponentInfo {
-  framework: "react" | "vue"
+  framework: "react" | "vue" | "svelte"
   hierarchy: string[]
   props?: Record<string, unknown>
   state?: Record<string, unknown>

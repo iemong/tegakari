@@ -9,6 +9,7 @@ Chrome拡張機能「tegakari」は、Webページ上の要素を選択し、そ
 
 - React (Next.js含む)
 - Vue (Nuxt含む)
+- Svelte (SvelteKit含む)。コンポーネント情報の収集はdev buildのみ（詳細は[Component Tree](#4-component-tree)参照）
 - フレームワーク未検出の場合も動作する（一部セクション省略）
 
 ## 出力形式
@@ -60,6 +61,8 @@ Toolbarのドロップダウンから5つの出力プリセット（`jsonl` / `m
 - **Next.js**: `__NEXT_DATA__` の存在（App Router / Pages Router判定含む）
 - **Vue**: `__vue__` または `__VUE__` の存在
 - **Nuxt**: `__NUXT__` の存在
+- **Svelte**: `window.__svelte.v`（バージョン登録用Set、dev/prod両対応）を優先し、取得できればメジャーバージョンを`Svelte 5`のように付与。無ければ`svelte-`ハッシュクラス名や要素の`__svelte_meta`（dev buildのみ）にフォールバック
+- **SvelteKit**: `#svelte-announcer`要素、`data-sveltekit-*`属性、`__sveltekit_`で始まるグローバル変数の存在
 
 ### 3. Selected Element
 
@@ -82,7 +85,7 @@ Toolbarのドロップダウンから5つの出力プリセット（`jsonl` / `m
 
 ### 4. Component Tree
 
-**表示条件**: React または Vue が検出された場合のみ。未検出時はセクション自体を省略する。
+**表示条件**: React・Vue・Svelte のいずれかが検出された場合のみ。未検出時はセクション自体を省略する。
 
 #### React の場合
 
@@ -102,6 +105,14 @@ Toolbarのドロップダウンから5つの出力プリセット（`jsonl` / `m
 
 **取得方法**: `__vue__` または `__vueParentComponent` 経由。Main World injection が必要。
 
+#### Svelte の場合
+
+- コンポーネントの階層パス（クリック要素から祖先方向にDOMを辿り、各要素の`__svelte_meta.loc.file`のファイル名から拡張子を除いたものをルート→末端順・重複除去で構築。Svelteはコンポーネントの実行時「名前」を持たないため、ソースファイル名を代用する）
+- Source（最も近い祖先の`loc.file:line`）
+- Props / State は取得しない（Svelte 4のクロージャとSvelte 5のシグナルで内部構造が異なり、安全にシリアライズできる共通の実行時表現が無いため）
+
+**取得方法**: DOM要素の`__svelte_meta`（dev buildのみ付与される）を要素自身から祖先方向に探索。fiber/vnodeのような仮想ツリーが存在しないため実DOMを直接辿る。prod buildでは`__svelte_meta`が付与されないため、Svelte自体の検出はできてもComponent Treeセクションは省略される。
+
 #### Source（ソースコード位置）
 
 選択要素に対応するソースファイルパス（取得できれば行番号付き）を `path/to/file.tsx:42` 形式で出力する。AIエディタが対象ファイルを探索する手間を省くための情報。
@@ -111,6 +122,7 @@ Toolbarのドロップダウンから5つの出力プリセット（`jsonl` / `m
 | React | Fiber の `_debugSource`（要素のJSX記述位置）。要素自身になければ祖先・`_debugOwner` をフォールバック探索 | dev build のみ。React 19 では `_debugSource` が削除されたため取得不可 |
 | Vue 3 | コンポーネントの `type.__file`（SFCコンパイラが付与） | dev build のみ。行番号なし |
 | Vue 2 | `$options.__file` | dev build のみ。行番号なし |
+| Svelte | 要素の `__svelte_meta.loc`（`file`/`line`） | dev build のみ。祖先方向に最も近い要素のlocを採用 |
 
 **出力条件**: 取得できた場合のみ。prod build では通常取得できないため省略される。
 

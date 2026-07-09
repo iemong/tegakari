@@ -34,10 +34,7 @@ export function generateMarkdown(
   // 4. Component Tree (conditional)
   if (input.componentInfo && options?.component !== "none") {
     const comp = input.componentInfo
-    const label =
-      comp.framework === "react"
-        ? "Component Tree (React)"
-        : "Component Tree (Vue)"
+    const label = `Component Tree (${componentFrameworkLabel(comp.framework)})`
     sections.push(
       `## ${label}\n${componentLines(comp, "- ", options?.component).join("\n")}`
     )
@@ -170,6 +167,16 @@ function elementLines(
 ): string[] {
   if (option === "minimal") return elementMinimalLines(el)
   return [...elementAttributeLines(el), ...elementStyleLines(el)]
+}
+
+const COMPONENT_FRAMEWORK_LABELS: Record<ComponentInfo["framework"], string> = {
+  react: "React",
+  vue: "Vue",
+  svelte: "Svelte",
+}
+
+function componentFrameworkLabel(framework: ComponentInfo["framework"]): string {
+  return COMPONENT_FRAMEWORK_LABELS[framework]
 }
 
 /** Component Tree content lines, shared by single/batch Markdown and the XML `<component>` tag. */

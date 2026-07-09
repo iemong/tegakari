@@ -2,6 +2,7 @@ import type { PlasmoCSConfig } from "plasmo"
 
 import { detectFramework } from "~lib/framework-detector"
 import { collectReactComponent } from "~lib/react-collector"
+import { collectSvelteComponent } from "~lib/svelte-collector"
 import type { CollectRequest, CollectResult } from "~lib/types"
 import { collectVueComponent } from "~lib/vue-collector"
 
@@ -25,6 +26,8 @@ window.addEventListener("message", (event: MessageEvent) => {
       component = collectReactComponent(element)
     } else if (framework?.framework === "Vue") {
       component = collectVueComponent(element)
+    } else if (framework?.framework?.startsWith("Svelte")) {
+      component = collectSvelteComponent(element)
     }
   }
 
