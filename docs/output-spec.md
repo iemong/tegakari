@@ -47,6 +47,29 @@ Toolbarのドロップダウンから5つの出力プリセット（`jsonl` / `m
   - **Markdown**（full/cursor/minimal共通）: `**Instruction**`行の直後に`**Tags**: spacing, color`を追加（空なら行ごと省略）
   - **claude-code（XML）**: `<instruction>`の直後に`<tags>spacing, color</tags>`を追加（instructionが空でtagsのみある場合もこの位置に出力し、tagsが空なら省略）
 
+#### Style changes（ページ上スタイル調整モード）
+
+ピンのポップオーバーに「Adjust styles」トグルで開く調整パネルを設け、対象要素のスタイルをその場でプレビューしながら調整できる。v1の対象プロパティ（この順で固定）: `margin` / `padding` / `font-size` / `line-height` / `color` / `background-color` / `border-radius` / `gap`。
+
+- 入力変更で対象要素にインラインスタイルとして即時プレビューを適用する。プレビューの適用/解除は要素の元のinline style値を退避してから行い、reset時に正確に復元する（元々inline styleが設定されていた要素を破壊しない）
+- Save時、変更前後が同一の行は含めずに `Annotation.styleDelta?: StyleDelta[]`（`{ property, before, after }`の配列。`property`はユニーク、配列順は編集順）として保存される。未設定・空配列は「変更なし」として扱われ、出力上も同じ（該当セクションが省略される）
+- ページ再訪時（ピン復元時）にプレビューは自動再適用しない。記録（styleDelta）は残るが見た目は素のままで、ポップオーバーを開くと保存済みの値が行に復元される
+- 出力への反映:
+  - **JSONL**: `annotation`オブジェクトに`"styleDelta":[{"property":"margin","before":"16px","after":"8px"}]`を追加（空なら`styleDelta`キー自体を省略）
+  - **Markdown**（full/cursor/minimal共通）: `**Tags**`行の直後に以下を追加（styleDeltaが無ければセクションごと省略）
+    ```
+    **Style changes**:
+      - margin: 16px → 8px
+      - color: rgb(51, 51, 51) → #2563eb
+    ```
+  - **claude-code（XML）**: `<tags>`の直後（tagsが無い場合もこの位置）に以下を追加（styleDeltaが無ければタグごと省略）
+    ```
+    <style-changes>
+    margin: 16px → 8px
+    </style-changes>
+    ```
+    既存の`<style-diff>`（Selected ElementのStylesと同じ内容＝現状の実効スタイル）とは別物なので混同しないこと
+
 ### 2. Page Context
 
 | 項目 | 内容 | 取得方法 |

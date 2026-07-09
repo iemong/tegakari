@@ -4,12 +4,14 @@ import {
   elementCssProvenanceLines,
   elementStyleLines,
   pageContextLines,
+  styleDeltaEntryLines,
 } from "./markdown-generator"
 import type {
   BatchInput,
   ComponentInfo,
   ElementInfo,
   MarkdownInput,
+  StyleDelta,
 } from "./types"
 
 /**
@@ -26,6 +28,7 @@ interface XmlAnnotationInput {
   elementInfo: ElementInfo
   componentInfo: ComponentInfo | null
   tags?: string[]
+  styleDelta?: StyleDelta[]
 }
 
 /** Single-annotation XML output (claude-code preset). */
@@ -92,6 +95,10 @@ function annotationXmlLines(annotation: XmlAnnotationInput): string[] {
   }
   if (annotation.tags && annotation.tags.length > 0) {
     lines.push(`<tags>${annotation.tags.join(", ")}</tags>`)
+  }
+  const styleChanges = styleDeltaEntryLines(annotation.styleDelta)
+  if (styleChanges.length > 0) {
+    lines.push("<style-changes>", ...styleChanges, "</style-changes>")
   }
   lines.push(
     "<element>",

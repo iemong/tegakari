@@ -1,15 +1,8 @@
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  type ReactNode,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import type { CSSProperties, KeyboardEvent, ReactNode, RefObject } from "react"
 
+import { TrashIcon } from "~components/icons"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation } from "~lib/types"
+import type { Annotation, StyleDelta } from "~lib/types"
 
 import {
   headerActionsStyle,
@@ -25,12 +18,20 @@ import {
   thumbnailStyle,
 } from "./annotation-pin-styles"
 import InstructionChips from "./instruction-chips"
+import StyleTweakPanel from "./style-tweak-panel"
+import { useAnnotationDraft } from "./use-annotation-draft"
+
+interface UpdatePayload {
+  instruction: string
+  tags?: string[]
+  styleDelta?: StyleDelta[]
+}
 
 interface Props {
   annotation: Annotation
   isActive: boolean
   onClick: () => void
-  onUpdateInstruction: (id: number, instruction: string, tags: string[]) => void
+  onUpdateInstruction: (id: number, payload: UpdatePayload) => void
   onDelete: (id: number) => void
   onDeselect: () => void
 }
@@ -39,33 +40,22 @@ export default function AnnotationPin(props: Props) {
   const { annotation, isActive, onClick, onUpdateInstruction, onDeselect } =
     props
   const { theme } = useTheme()
-  const [draft, setDraft] = useState(annotation.instruction)
-  const [draftTags, setDraftTags] = useState<string[]>(annotation.tags ?? [])
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    if (!isActive) {
-      setDraft(annotation.instruction)
-      setDraftTags(annotation.tags ?? [])
-    }
-  }, [annotation.instruction, annotation.tags, isActive])
-
-  useEffect(() => {
-    if (isActive) {
-      setDraft(annotation.instruction)
-      setDraftTags(annotation.tags ?? [])
-      requestAnimationFrame(() => textareaRef.current?.focus())
-    }
-  }, [isActive, annotation.instruction, annotation.tags])
-
-  const handleToggleTag = (id: string) => {
-    setDraftTags((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    )
-  }
+  const {
+    draft,
+    setDraft,
+    draftTags,
+    onToggleTag: handleToggleTag,
+    draftStyleDelta,
+    setDraftStyleDelta,
+    textareaRef,
+  } = useAnnotationDraft(annotation, isActive)
 
   const handleSave = () => {
-    onUpdateInstruction(annotation.id, draft, draftTags)
+    onUpdateInstruction(annotation.id, {
+      instruction: draft,
+      tags: draftTags,
+      styleDelta: draftStyleDelta,
+    })
     onDeselect()
   }
 
@@ -92,6 +82,7 @@ export default function AnnotationPin(props: Props) {
           setDraft={setDraft}
           draftTags={draftTags}
           onToggleTag={handleToggleTag}
+          onStyleDeltaChange={setDraftStyleDelta}
           textareaRef={textareaRef}
           style={popoverStyle(pos)}
           onSave={handleSave}
@@ -132,6 +123,7 @@ interface PinPopoverProps {
   setDraft: (value: string) => void
   draftTags: string[]
   onToggleTag: (id: string) => void
+  onStyleDeltaChange: (styleDelta: StyleDelta[] | undefined) => void
   textareaRef: RefObject<HTMLTextAreaElement>
   style: CSSProperties
   onSave: () => void
@@ -146,6 +138,7 @@ function PinPopover({
   setDraft,
   draftTags,
   onToggleTag,
+  onStyleDeltaChange,
   textareaRef,
   style,
   onSave,
@@ -186,6 +179,12 @@ function PinPopover({
         onBlur={(e) => {
           e.currentTarget.style.borderColor = theme.border
         }}
+      />
+      <StyleTweakPanel
+        theme={theme}
+        annotation={annotation}
+        isActive={true}
+        onChange={onStyleDeltaChange}
       />
       <button onClick={onSave} style={saveButtonStyle(theme)}>
         Save
@@ -252,21 +251,4 @@ function handlePopoverKey(
     e.stopPropagation()
     onSave()
   }
-}
-
-function TrashIcon({ color }: { color: string }) {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  )
 }

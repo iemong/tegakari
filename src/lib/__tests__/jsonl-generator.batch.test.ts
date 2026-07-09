@@ -240,3 +240,43 @@ it("generateBatchJsonl: omits tags on the annotation entry when undefined or emp
   expect(undefinedTags.tags).toBeUndefined()
   expect(emptyTags.tags).toBeUndefined()
 })
+
+it("generateBatchJsonl: includes styleDelta on the annotation entry when set", () => {
+  const input: BatchInput = {
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [
+      {
+        ...fullBatchInput.annotations[0],
+        styleDelta: [{ property: "margin", before: "16px", after: "8px" }],
+      },
+    ],
+  }
+
+  const result = generateBatchJsonl(input)
+  const annotation = JSON.parse(result.split("\n")[1])
+
+  expect(annotation.styleDelta).toEqual([
+    { property: "margin", before: "16px", after: "8px" },
+  ])
+})
+
+it("generateBatchJsonl: omits styleDelta on the annotation entry when undefined or empty", () => {
+  const undefinedDelta = JSON.parse(
+    generateBatchJsonl({
+      pageUrl: "https://example.com",
+      pageTitle: "Page",
+      annotations: [{ ...fullBatchInput.annotations[0], styleDelta: undefined }],
+    }).split("\n")[1]
+  )
+  const emptyDelta = JSON.parse(
+    generateBatchJsonl({
+      pageUrl: "https://example.com",
+      pageTitle: "Page",
+      annotations: [{ ...fullBatchInput.annotations[0], styleDelta: [] }],
+    }).split("\n")[1]
+  )
+
+  expect(undefinedDelta.styleDelta).toBeUndefined()
+  expect(emptyDelta.styleDelta).toBeUndefined()
+})

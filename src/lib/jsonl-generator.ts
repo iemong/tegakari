@@ -93,6 +93,9 @@ function buildAnnotationEntry(
   if (annotation.tags && annotation.tags.length > 0) {
     entry.tags = annotation.tags
   }
+  if (annotation.styleDelta && annotation.styleDelta.length > 0) {
+    entry.styleDelta = annotation.styleDelta
+  }
   entry.element = buildElementEntry(annotation.elementInfo)
   if (annotation.componentInfo) {
     entry.component = buildComponentEntry(annotation.componentInfo)

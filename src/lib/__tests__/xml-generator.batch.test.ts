@@ -148,3 +148,39 @@ it("generateBatchXml: omits <tags> when tags is undefined or empty", () => {
   expect(undefinedTags).not.toContain("<tags>")
   expect(emptyTags).not.toContain("<tags>")
 })
+
+it("generateBatchXml: renders <style-changes> right after <tags>", () => {
+  const result = generateBatchXml({
+    pageUrl: batchInput.pageUrl,
+    pageTitle: batchInput.pageTitle,
+    annotations: [
+      {
+        ...batchInput.annotations[0],
+        tags: ["spacing"],
+        styleDelta: [{ property: "margin", before: "16px", after: "8px" }],
+      },
+    ],
+  })
+  const lines = result.split("\n")
+  const tagsIdx = lines.findIndex((l) => l.startsWith("<tags>"))
+
+  expect(lines[tagsIdx + 1]).toBe("<style-changes>")
+  expect(lines[tagsIdx + 2]).toBe("margin: 16px → 8px")
+  expect(lines[tagsIdx + 3]).toBe("</style-changes>")
+})
+
+it("generateBatchXml: omits <style-changes> when styleDelta is undefined or empty", () => {
+  const undefinedDelta = generateBatchXml({
+    pageUrl: batchInput.pageUrl,
+    pageTitle: batchInput.pageTitle,
+    annotations: [{ ...batchInput.annotations[0], styleDelta: undefined }],
+  })
+  const emptyDelta = generateBatchXml({
+    pageUrl: batchInput.pageUrl,
+    pageTitle: batchInput.pageTitle,
+    annotations: [{ ...batchInput.annotations[0], styleDelta: [] }],
+  })
+
+  expect(undefinedDelta).not.toContain("<style-changes>")
+  expect(emptyDelta).not.toContain("<style-changes>")
+})

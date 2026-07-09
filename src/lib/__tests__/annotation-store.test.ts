@@ -148,6 +148,18 @@ it("annotation-store: loads legacy data saved before the tags field existed", as
   expect(loaded?.annotations[0].tags).toBeUndefined()
 })
 
+it("annotation-store: loads legacy data saved before the styleDelta field existed", async () => {
+  // Simulates a store persisted by an older version of the extension, where
+  // annotations never had a `styleDelta` key at all.
+  const legacyAnnotation = annotation(1)
+  const key = storageKey(metadata.url)
+  storage[key] = { url: metadata.url, metadata, annotations: [legacyAnnotation] }
+
+  const loaded = await loadAnnotationStore(metadata.url)
+
+  expect(loaded?.annotations[0].styleDelta).toBeUndefined()
+})
+
 it("annotation-store: collects page metadata from browser globals", () => {
   vi.setSystemTime(12345)
   Object.defineProperty(window, "innerWidth", {

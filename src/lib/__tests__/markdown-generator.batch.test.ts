@@ -254,3 +254,69 @@ it("generateBatchMarkdown: still renders the Tags line when the instruction is b
   expect(annotationSection).not.toContain("**Instruction**")
   expect(annotationSection).toContain("**Tags**: remove")
 })
+
+it("generateBatchMarkdown: renders a Style changes block right after Tags", () => {
+  const input: BatchInput = {
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [
+      {
+        ...fullBatchInput.annotations[0],
+        tags: ["spacing"],
+        styleDelta: [
+          { property: "margin", before: "16px", after: "8px" },
+          { property: "color", before: "rgb(51, 51, 51)", after: "#2563eb" },
+        ],
+      },
+    ],
+  }
+
+  const result = generateBatchMarkdown(input)
+  const annotationSection = result.split("## Annotation #1")[1]
+  const tagsIdx = annotationSection.indexOf("**Tags**")
+  const styleIdx = annotationSection.indexOf("**Style changes**")
+
+  expect(styleIdx).toBeGreaterThan(tagsIdx)
+  expect(result).toContain(
+    ["**Style changes**:", "  - margin: 16px → 8px", "  - color: rgb(51, 51, 51) → #2563eb"].join(
+      "\n"
+    )
+  )
+})
+
+it("generateBatchMarkdown: omits the Style changes block when styleDelta is undefined or empty", () => {
+  const undefinedDelta = generateBatchMarkdown({
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [{ ...fullBatchInput.annotations[0], styleDelta: undefined }],
+  })
+  const emptyDelta = generateBatchMarkdown({
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [{ ...fullBatchInput.annotations[0], styleDelta: [] }],
+  })
+
+  expect(undefinedDelta).not.toContain("**Style changes**")
+  expect(emptyDelta).not.toContain("**Style changes**")
+})
+
+it("generateBatchMarkdown: still renders Style changes under the cursor/minimal element options", () => {
+  const input: BatchInput = {
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [
+      {
+        ...fullBatchInput.annotations[0],
+        styleDelta: [{ property: "gap", before: "4px", after: "8px" }],
+      },
+    ],
+  }
+
+  const minimal = generateBatchMarkdown(input, {
+    pageContext: "url-only",
+    element: "minimal",
+    component: "none",
+  })
+
+  expect(minimal).toContain("**Style changes**:\n  - gap: 4px → 8px")
+})

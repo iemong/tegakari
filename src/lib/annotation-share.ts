@@ -3,7 +3,7 @@
 // set pinned by one person (e.g. a PM on a staging site) can be reviewed and
 // fed to an AI editor by another.
 
-import type { Annotation, AnnotationStore } from "./types"
+import type { Annotation, AnnotationStore, StyleDelta } from "./types"
 
 const EXPORT_FORMAT = "tegakari-annotations"
 const EXPORT_VERSION = 1
@@ -135,6 +135,7 @@ function validateAnnotation(entry: unknown): Annotation | null {
     ...(typeof a.screenshot === "string" ? { screenshot: a.screenshot } : {}),
     createdAt: typeof a.createdAt === "number" ? a.createdAt : Date.now(),
     ...validTags(a.tags),
+    ...validStyleDelta(a.styleDelta),
   }
 }
 
@@ -144,6 +145,26 @@ function validTags(tags: unknown): { tags: string[] } | Record<string, never> {
     return {}
   }
   return { tags }
+}
+
+function isStyleDeltaEntry(entry: unknown): entry is StyleDelta {
+  if (typeof entry !== "object" || entry === null) return false
+  const d = entry as Partial<StyleDelta>
+  return (
+    typeof d.property === "string" &&
+    typeof d.before === "string" &&
+    typeof d.after === "string"
+  )
+}
+
+/** Keep `styleDelta` only if every entry survived the JSON round-trip with the right shape. */
+function validStyleDelta(
+  styleDelta: unknown
+): { styleDelta: StyleDelta[] } | Record<string, never> {
+  if (!Array.isArray(styleDelta) || !styleDelta.every(isStyleDeltaEntry)) {
+    return {}
+  }
+  return { styleDelta }
 }
 
 /** Compare URLs ignoring the hash, mirroring the annotation-store key rule */

@@ -13,11 +13,13 @@ import {
   updateAnnotations,
 } from "~lib/annotation-store"
 import { generateSelector } from "~lib/selector"
+import { revertAnnotationStylePreview } from "~lib/style-preview"
 import type {
   Annotation,
   CollectResult,
   PageMetadata,
   Rect,
+  StyleDelta,
 } from "~lib/types"
 
 import { buildElementInfo, captureScreenshot, cropToElement } from "./overlay-helpers"
@@ -47,6 +49,7 @@ export function useAnnotations() {
     setAnnotations,
     setActiveId,
     nextIdRef,
+    annotations,
   })
   useResultListener({ setAnnotations, setMetadata, persist, pendingIdRef })
 
@@ -160,11 +163,32 @@ function attachScreenshot(id: number, rect: Rect, mutate: Mutate) {
   })
 }
 
+/** Payload for `handleUpdateInstruction`: the pin popover's full editable state, saved atomically. */
+export interface AnnotationEditPayload {
+  instruction: string
+  tags?: string[]
+  styleDelta?: StyleDelta[]
+}
+
+function nonEmpty<T>(arr: T[] | undefined): T[] | undefined {
+  return arr && arr.length > 0 ? arr : undefined
+}
+
+function applyEditPayload(a: Annotation, payload: AnnotationEditPayload): Annotation {
+  return {
+    ...a,
+    instruction: payload.instruction,
+    tags: nonEmpty(payload.tags),
+    styleDelta: nonEmpty(payload.styleDelta),
+  }
+}
+
 interface ActionDeps {
   mutate: Mutate
   setAnnotations: (anns: Annotation[]) => void
   setActiveId: (updater: (prev: number | null) => number | null) => void
   nextIdRef: MutableRefObject<number>
+  annotations: Annotation[]
 }
 
 function useAnnotationActions({
@@ -172,34 +196,32 @@ function useAnnotationActions({
   setAnnotations,
   setActiveId,
   nextIdRef,
+  annotations,
 }: ActionDeps) {
   const handleUpdateInstruction = useCallback(
-    (id: number, instruction: string, tags: string[] = []) => {
-      mutate((prev) =>
-        prev.map((a) =>
-          a.id === id
-            ? { ...a, instruction, tags: tags.length > 0 ? tags : undefined }
-            : a
-        )
-      )
+    (id: number, payload: AnnotationEditPayload) => {
+      mutate((prev) => prev.map((a) => (a.id === id ? applyEditPayload(a, payload) : a)))
     },
     [mutate]
   )
 
   const handleDeleteAnnotation = useCallback(
     (id: number) => {
+      const target = annotations.find((a) => a.id === id)
+      if (target) revertAnnotationStylePreview(target)
       mutate((prev) => prev.filter((a) => a.id !== id))
       setActiveId((prev) => (prev === id ? null : prev))
     },
-    [mutate, setActiveId]
+    [mutate, setActiveId, annotations]
   )
 
   const handleClearAll = useCallback(async () => {
+    for (const a of annotations) revertAnnotationStylePreview(a)
     setAnnotations([])
     setActiveId(() => null)
     nextIdRef.current = 1
     await clearAllAnnotations(location.href)
-  }, [setAnnotations, setActiveId, nextIdRef])
+  }, [setAnnotations, setActiveId, nextIdRef, annotations])
 
   // Append imported annotations, renumbering them to avoid id collisions
   const handleImportAnnotations = useCallback(

@@ -7,6 +7,7 @@ import type {
   FrameworkInfo,
   MarkdownInput,
   MarkdownSectionOptions,
+  StyleDelta,
 } from "./types"
 
 export function generateMarkdown(
@@ -249,6 +250,19 @@ export function componentLines(
   return lines
 }
 
+/** Raw "property: before → after" lines, one per styleDelta entry. Shared by the Markdown and XML `<style-changes>` renderings. */
+export function styleDeltaEntryLines(delta: StyleDelta[] | undefined): string[] {
+  if (!delta || delta.length === 0) return []
+  return delta.map(({ property, before, after }) => `${property}: ${before} → ${after}`)
+}
+
+/** "Style changes" section lines (empty when there's no styleDelta). */
+export function styleDeltaLines(delta: StyleDelta[] | undefined): string[] {
+  const entries = styleDeltaEntryLines(delta)
+  if (entries.length === 0) return []
+  return [`**Style changes**:`, ...entries.map((line) => `  - ${line}`)]
+}
+
 function annotationLines(
   annotation: BatchInput["annotations"][number],
   options?: MarkdownSectionOptions
@@ -260,6 +274,7 @@ function annotationLines(
   if (annotation.tags && annotation.tags.length > 0) {
     lines.push(`**Tags**: ${annotation.tags.join(", ")}`)
   }
+  lines.push(...styleDeltaLines(annotation.styleDelta))
   lines.push(...elementLines(annotation.elementInfo, options?.element))
   if (annotation.componentInfo && options?.component !== "none") {
     lines.push(

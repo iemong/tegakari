@@ -91,6 +91,13 @@ export interface PageMetadata {
   frameworkInfo: FrameworkInfo | null
 }
 
+/** A single property adjusted via the "Adjust styles" panel on a pin popover. */
+export interface StyleDelta {
+  property: string // CSS property name (kebab-case)
+  before: string // computed value before the adjustment
+  after: string // value the user set
+}
+
 export interface Annotation {
   id: number
   elementInfo: ElementInfo
@@ -110,6 +117,13 @@ export interface Annotation {
    * treated identically by generators/UI.
    */
   tags?: string[]
+  /**
+   * Style adjustments made via the pin popover's "Adjust styles" panel.
+   * `property` is unique per entry; array order mirrors edit order. Omitted
+   * or empty means "no style changes" — both are treated identically by
+   * generators/UI.
+   */
+  styleDelta?: StyleDelta[]
 }
 
 /** Stored per URL */
