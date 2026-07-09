@@ -4,9 +4,9 @@ import {
   IFRAME_SELECTION_KEY,
   OUTPUT_FORMAT_KEY,
   loadIframeSelection,
-  loadOutputFormat,
+  loadOutputPreset,
   setIframeSelection,
-  setOutputFormat,
+  setOutputPreset,
 } from "../settings"
 
 type StorageRecord = Record<string, unknown>
@@ -52,23 +52,43 @@ describe("settings: iframe selection", () => {
   })
 })
 
-describe("settings: output format", () => {
+describe("settings: output preset", () => {
   it("defaults to jsonl when unset", async () => {
-    await expect(loadOutputFormat()).resolves.toBe("jsonl")
+    await expect(loadOutputPreset()).resolves.toBe("jsonl")
   })
 
   it("reads markdown when persisted", async () => {
     storage[OUTPUT_FORMAT_KEY] = "markdown"
-    await expect(loadOutputFormat()).resolves.toBe("markdown")
+    await expect(loadOutputPreset()).resolves.toBe("markdown")
   })
+
+  it.each(["jsonl", "markdown", "claude-code", "cursor", "minimal"] as const)(
+    "reads the %s preset when persisted",
+    async (preset) => {
+      storage[OUTPUT_FORMAT_KEY] = preset
+      await expect(loadOutputPreset()).resolves.toBe(preset)
+    }
+  )
 
   it("falls back to jsonl for unknown values", async () => {
     storage[OUTPUT_FORMAT_KEY] = "yaml"
-    await expect(loadOutputFormat()).resolves.toBe("jsonl")
+    await expect(loadOutputPreset()).resolves.toBe("jsonl")
   })
 
-  it("persists the chosen format", () => {
-    setOutputFormat("markdown")
+  it("falls back to jsonl for non-string values", async () => {
+    storage[OUTPUT_FORMAT_KEY] = 42
+    await expect(loadOutputPreset()).resolves.toBe("jsonl")
+  })
+
+  it("persists the chosen preset", () => {
+    setOutputPreset("markdown")
     expect(storageSet).toHaveBeenCalledWith({ [OUTPUT_FORMAT_KEY]: "markdown" })
+  })
+
+  it("persists a new preset id under the same storage key (backward-compat)", () => {
+    setOutputPreset("claude-code")
+    expect(storageSet).toHaveBeenCalledWith({
+      [OUTPUT_FORMAT_KEY]: "claude-code",
+    })
   })
 })

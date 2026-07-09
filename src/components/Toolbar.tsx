@@ -9,23 +9,21 @@ import {
 import { CopyImageButton } from "~components/copy-image-button"
 import InboxPanel from "~components/InboxPanel"
 import { CloseIcon, CopyIcon, InboxIcon } from "~components/icons"
+import { PresetDropdown } from "~components/preset-dropdown"
 import { useClipboard } from "~hooks/use-clipboard"
-import { generateBatchJsonl } from "~lib/jsonl-generator"
-import { generateBatchMarkdown } from "~lib/markdown-generator"
+import { generateBatchPresetOutput } from "~lib/output-presets"
 import { findMatchingPrefix, loadPrefixRules } from "~lib/prefix-rules"
 import {
-  loadOutputFormat,
-  setOutputFormat as persistOutputFormat,
+  loadOutputPreset,
+  setOutputPreset as persistOutputPreset,
 } from "~lib/settings"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation, OutputFormat, PageMetadata } from "~lib/types"
+import type { Annotation, OutputPreset, PageMetadata } from "~lib/types"
 
 import {
   btnBase,
   copyButtonStyle,
   dividerStyle,
-  formatButtonStyle,
-  formatGroupStyle,
   inboxBadgeStyle,
   inboxButtonStyle,
   toolbarBarStyle,
@@ -57,8 +55,8 @@ export default function Toolbar(props: Props) {
         count={t.annotations.length}
         copied={t.copied}
         onCopy={t.handleCopy}
-        outputFormat={t.outputFormat}
-        onFormatChange={t.setOutputFormat}
+        outputPreset={t.outputPreset}
+        onPresetChange={t.setOutputPreset}
         onClose={props.onClose}
       />
 
@@ -85,7 +83,7 @@ export default function Toolbar(props: Props) {
 function useToolbar(props: Props) {
   const { copy } = useClipboard()
   const [inboxOpen, setInboxOpen] = useState(false)
-  const [outputFormat, setOutputFormat] = useStoredOutputFormat()
+  const [outputPreset, setOutputPreset] = useStoredOutputPreset()
   const toolbarRef = useRef<HTMLDivElement>(null)
   const { annotations, metadata } = props
 
@@ -101,11 +99,9 @@ function useToolbar(props: Props) {
         prefix: prefix.trim() || undefined,
         metadata: metadata ?? undefined,
       }
-      return outputFormat === "jsonl"
-        ? generateBatchJsonl(input)
-        : generateBatchMarkdown(input)
+      return generateBatchPresetOutput(outputPreset, input)
     },
-    [outputFormat, prefix, metadata]
+    [outputPreset, prefix, metadata]
   )
 
   const actions = useToolbarActions(copy, formatOutput, annotations)
@@ -113,8 +109,8 @@ function useToolbar(props: Props) {
   return {
     inboxOpen,
     setInboxOpen,
-    outputFormat,
-    setOutputFormat,
+    outputPreset,
+    setOutputPreset,
     toolbarRef,
     annotations,
     prefix,
@@ -124,24 +120,25 @@ function useToolbar(props: Props) {
   }
 }
 
-// Output format persists across sessions so users who prefer Markdown don't
-// have to re-toggle from the JSONL default every time.
-function useStoredOutputFormat(): [
-  OutputFormat,
-  (format: OutputFormat) => void,
+// Output preset persists across sessions so users who prefer e.g. Cursor's
+// trimmed Markdown don't have to re-select it from the JSONL default every
+// time.
+function useStoredOutputPreset(): [
+  OutputPreset,
+  (preset: OutputPreset) => void,
 ] {
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>("jsonl")
+  const [outputPreset, setOutputPreset] = useState<OutputPreset>("jsonl")
 
   useEffect(() => {
-    loadOutputFormat().then(setOutputFormat)
+    loadOutputPreset().then(setOutputPreset)
   }, [])
 
-  const update = useCallback((format: OutputFormat) => {
-    setOutputFormat(format)
-    persistOutputFormat(format)
+  const update = useCallback((preset: OutputPreset) => {
+    setOutputPreset(preset)
+    persistOutputPreset(preset)
   }, [])
 
-  return [outputFormat, update]
+  return [outputPreset, update]
 }
 
 // Load prefix rules on mount + whenever storage changes.
@@ -201,8 +198,8 @@ interface ToolbarBarProps {
   count: number
   copied: boolean
   onCopy: () => void
-  outputFormat: OutputFormat
-  onFormatChange: (format: OutputFormat) => void
+  outputPreset: OutputPreset
+  onPresetChange: (preset: OutputPreset) => void
   onClose: () => void
 }
 
@@ -215,8 +212,8 @@ function ToolbarBar({
   count,
   copied,
   onCopy,
-  outputFormat,
-  onFormatChange,
+  outputPreset,
+  onPresetChange,
   onClose,
 }: ToolbarBarProps) {
   return (
@@ -239,10 +236,10 @@ function ToolbarBar({
       </button>
       <CopyImageButton annotations={annotations} />
       <div style={dividerStyle(theme)} />
-      <FormatToggle
+      <PresetDropdown
         theme={theme}
-        outputFormat={outputFormat}
-        onFormatChange={onFormatChange}
+        preset={outputPreset}
+        onPresetChange={onPresetChange}
       />
       <div style={dividerStyle(theme)} />
       <button onClick={onClose} style={btnBase} title="Close tegakari">
@@ -265,27 +262,6 @@ function InboxButton({ theme, open, count, onToggle }: InboxButtonProps) {
       <InboxIcon color={open ? theme.accent : theme.textMuted} />
       {count > 0 && <span style={inboxBadgeStyle(theme)}>{count}</span>}
     </button>
-  )
-}
-
-interface FormatToggleProps {
-  theme: Theme
-  outputFormat: OutputFormat
-  onFormatChange: (format: OutputFormat) => void
-}
-
-function FormatToggle({ theme, outputFormat, onFormatChange }: FormatToggleProps) {
-  return (
-    <div style={formatGroupStyle(theme)}>
-      {(["jsonl", "markdown"] as const).map((fmt) => (
-        <button
-          key={fmt}
-          onClick={() => onFormatChange(fmt)}
-          style={formatButtonStyle(theme, outputFormat === fmt)}>
-          {fmt === "jsonl" ? "JSONL" : "MD"}
-        </button>
-      ))}
-    </div>
   )
 }
 

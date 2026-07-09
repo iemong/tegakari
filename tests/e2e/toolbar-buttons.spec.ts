@@ -35,12 +35,10 @@ async function expectAllToolbarButtonsClickable(
     await expect(copyImage).toBeDisabled()
   }
 
-  // Format toggle pill (text-only buttons).
-  for (const fmt of ["JSONL", "MD"]) {
-    const fmtBtn = page.getByRole("button", { name: fmt, exact: true })
-    await expect(fmtBtn, `format button ${fmt} should be visible`).toBeVisible()
-    await fmtBtn.click({ trial: true })
-  }
+  // Output preset dropdown trigger (shows the current preset label, e.g. "JSONL").
+  const presetTrigger = page.getByTitle("Output preset", { exact: true })
+  await expect(presetTrigger, "preset dropdown trigger should be visible").toBeVisible()
+  await presetTrigger.click({ trial: true })
 }
 
 extTest.describe("Toolbar buttons", () => {

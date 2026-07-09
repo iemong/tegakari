@@ -73,6 +73,14 @@ export function ImageIcon({ color, size = 16 }: IconProps) {
   )
 }
 
+export function ChevronDownIcon({ color, size = 10 }: IconProps) {
+  return (
+    <svg {...svgProps(size, color)}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
 export function CloseIcon({ color, size = 14 }: IconProps) {
   return (
     <svg

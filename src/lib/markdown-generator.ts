@@ -5,9 +5,13 @@ import type {
   ElementInfo,
   FrameworkInfo,
   MarkdownInput,
+  MarkdownSectionOptions,
 } from "./types"
 
-export function generateMarkdown(input: MarkdownInput): string {
+export function generateMarkdown(
+  input: MarkdownInput,
+  options?: MarkdownSectionOptions
+): string {
   const sections: string[] = []
 
   // 1. User Instruction
@@ -16,55 +20,81 @@ export function generateMarkdown(input: MarkdownInput): string {
   }
 
   // 2. Page Context
-  const contextLines = [
-    `- **URL**: ${input.pageUrl}`,
-    ...frameworkContextLines(input.frameworkInfo),
-    `- **Page Title**: ${input.pageTitle}`,
-  ]
+  const contextLines = pageContextLines(
+    { pageUrl: input.pageUrl, pageTitle: input.pageTitle, framework: input.frameworkInfo },
+    options?.pageContext
+  )
   sections.push(`## Page Context\n${contextLines.join("\n")}`)
 
   // 3. Selected Element
   sections.push(
-    `## Selected Element\n${elementLines(input.elementInfo).join("\n")}`
+    `## Selected Element\n${elementLines(input.elementInfo, options?.element).join("\n")}`
   )
 
   // 4. Component Tree (conditional)
-  if (input.componentInfo) {
+  if (input.componentInfo && options?.component !== "none") {
     const comp = input.componentInfo
     const label =
       comp.framework === "react"
         ? "Component Tree (React)"
         : "Component Tree (Vue)"
-    sections.push(`## ${label}\n${componentLines(comp, "- ").join("\n")}`)
+    sections.push(
+      `## ${label}\n${componentLines(comp, "- ", options?.component).join("\n")}`
+    )
   }
 
   return sections.join("\n\n")
 }
 
-export function generateBatchMarkdown(input: BatchInput): string {
+export function generateBatchMarkdown(
+  input: BatchInput,
+  options?: MarkdownSectionOptions
+): string {
   const sections: string[] = []
 
   // Page Context (once)
   const firstFramework = input.annotations.find(
     (a) => a.frameworkInfo
   )?.frameworkInfo
-  const contextLines = [
-    `- **URL**: ${input.pageUrl}`,
-    ...frameworkContextLines(firstFramework),
-    `- **Page Title**: ${input.pageTitle}`,
-    ...metadataLines(input.metadata),
-  ]
+  const contextLines = pageContextLines(
+    {
+      pageUrl: input.pageUrl,
+      pageTitle: input.pageTitle,
+      framework: firstFramework,
+      metadata: input.metadata,
+    },
+    options?.pageContext
+  )
   sections.push(`## Page Context\n${contextLines.join("\n")}`)
 
   // Each annotation
   for (const annotation of input.annotations) {
     sections.push(
-      `## Annotation #${annotation.id}\n${annotationLines(annotation).join("\n")}`
+      `## Annotation #${annotation.id}\n${annotationLines(annotation, options).join("\n")}`
     )
   }
 
   const body = sections.join("\n\n")
   return input.prefix ? `${input.prefix}\n\n${body}` : body
+}
+
+interface PageContextInput {
+  pageUrl: string
+  pageTitle: string
+  framework?: FrameworkInfo | null
+  metadata?: BatchInput["metadata"]
+}
+
+/** Build the Page Context content lines, shared by single/batch Markdown and the XML preset. */
+export function pageContextLines(
+  input: PageContextInput,
+  option: MarkdownSectionOptions["pageContext"] = "full"
+): string[] {
+  const lines = [`- **URL**: ${input.pageUrl}`]
+  if (option === "url-only") return lines
+  lines.push(...frameworkContextLines(input.framework), `- **Page Title**: ${input.pageTitle}`)
+  if (option === "full") lines.push(...metadataLines(input.metadata))
+  return lines
 }
 
 function frameworkContextLines(
@@ -89,7 +119,8 @@ function metadataLines(metadata: BatchInput["metadata"]): string[] {
   ]
 }
 
-function elementLines(el: ElementInfo): string[] {
+/** Selector/tag/text/attributes lines, without Styles. Reused by the XML `<element>` tag. */
+export function elementAttributeLines(el: ElementInfo): string[] {
   const lines = [
     `- **Selector**: \`${el.selector}\``,
     `- **Tag**: \`<${el.tag}>\``,
@@ -104,24 +135,58 @@ function elementLines(el: ElementInfo): string[] {
       lines.push(`  - ${key}: \`${value}\``)
     }
   }
+  return lines
+}
+
+/** Styles-only lines (empty when there's no diff). Reused by the XML `<style-diff>` tag. */
+export function elementStyleLines(el: ElementInfo): string[] {
   const styleEntries = Object.entries(el.styles ?? {})
-  if (styleEntries.length > 0) {
-    lines.push(`- **Styles**:`)
-    for (const [prop, value] of styleEntries) {
-      lines.push(`  - ${prop}: \`${value}\``)
-    }
+  if (styleEntries.length === 0) return []
+  const lines = [`- **Styles**:`]
+  for (const [prop, value] of styleEntries) {
+    lines.push(`  - ${prop}: \`${value}\``)
   }
   return lines
 }
 
-function componentLines(comp: ComponentInfo, hierarchyLabel: string): string[] {
+/** Minimal element line set: selector, tag, class (if any), text. */
+function elementMinimalLines(el: ElementInfo): string[] {
+  const lines = [
+    `- **Selector**: \`${el.selector}\``,
+    `- **Tag**: \`<${el.tag}>\``,
+  ]
+  if (el.attributes.class) {
+    lines.push(`- **Class**: \`${el.attributes.class}\``)
+  }
+  if (el.text) {
+    lines.push(`- **Text**: "${el.text}"`)
+  }
+  return lines
+}
+
+function elementLines(
+  el: ElementInfo,
+  option: MarkdownSectionOptions["element"] = "full"
+): string[] {
+  if (option === "minimal") return elementMinimalLines(el)
+  return [...elementAttributeLines(el), ...elementStyleLines(el)]
+}
+
+/** Component Tree content lines, shared by single/batch Markdown and the XML `<component>` tag. */
+export function componentLines(
+  comp: ComponentInfo,
+  hierarchyLabel: string,
+  option: MarkdownSectionOptions["component"] = "full"
+): string[] {
   const lines: string[] = []
-  if (comp.hierarchy.length > 0) {
-    lines.push(`${hierarchyLabel}\`${comp.hierarchy.join("` → `")}\``)
+  const hierarchy = option === "brief" ? comp.hierarchy.slice(-3) : comp.hierarchy
+  if (hierarchy.length > 0) {
+    lines.push(`${hierarchyLabel}\`${hierarchy.join("` → `")}\``)
   }
   if (comp.source) {
     lines.push(`- **Source**: \`${formatSourceLocation(comp.source)}\``)
   }
+  if (option === "brief") return lines
   if (comp.props) {
     lines.push(`- **Props**: \`${formatObject(comp.props)}\``)
   }
@@ -133,15 +198,18 @@ function componentLines(comp: ComponentInfo, hierarchyLabel: string): string[] {
 }
 
 function annotationLines(
-  annotation: BatchInput["annotations"][number]
+  annotation: BatchInput["annotations"][number],
+  options?: MarkdownSectionOptions
 ): string[] {
   const lines: string[] = []
   if (annotation.instruction.trim()) {
     lines.push(`**Instruction**: ${annotation.instruction.trim()}`)
   }
-  lines.push(...elementLines(annotation.elementInfo))
-  if (annotation.componentInfo) {
-    lines.push(...componentLines(annotation.componentInfo, "- **Component**: "))
+  lines.push(...elementLines(annotation.elementInfo, options?.element))
+  if (annotation.componentInfo && options?.component !== "none") {
+    lines.push(
+      ...componentLines(annotation.componentInfo, "- **Component**: ", options?.component)
+    )
   }
   return lines
 }

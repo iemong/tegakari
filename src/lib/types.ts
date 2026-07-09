@@ -102,7 +102,13 @@ export interface MarkdownInput {
   componentInfo: ComponentInfo | null
 }
 
-export type OutputFormat = "markdown" | "jsonl"
+/**
+ * Output preset id. `jsonl`/`markdown` are the original full-fidelity
+ * formats; `claude-code` wraps the same information in an XML contract used
+ * to auto-trigger the tegakari-fix skill; `cursor`/`minimal` are trimmed
+ * Markdown variants for token-conscious editors.
+ */
+export type OutputPreset = "jsonl" | "markdown" | "claude-code" | "cursor" | "minimal"
 
 export interface BatchInput {
   pageUrl: string
@@ -110,6 +116,21 @@ export interface BatchInput {
   annotations: Annotation[]
   prefix?: string
   metadata?: PageMetadata
+}
+
+/**
+ * Section inclusion/depth knobs used by the Markdown generator to derive the
+ * `cursor`/`minimal` presets from the full (`markdown`) output without a
+ * second generator. Omitted keys default to the fullest, backward-compatible
+ * behavior.
+ */
+export interface MarkdownSectionOptions {
+  /** Page Context fields. "compact" drops batch metadata; "url-only" keeps only the URL. */
+  pageContext?: "full" | "compact" | "url-only"
+  /** Selected Element fields. "minimal" keeps selector/tag/class/text only. */
+  element?: "full" | "minimal"
+  /** Component Tree depth. "brief" keeps name (last 3 levels) + source only; "none" omits the section. */
+  component?: "full" | "brief" | "none"
 }
 
 export interface PrefixRule {
