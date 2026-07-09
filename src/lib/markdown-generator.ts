@@ -7,6 +7,7 @@ import type {
   FrameworkInfo,
   MarkdownInput,
   MarkdownSectionOptions,
+  Relation,
   StyleDelta,
 } from "./types"
 
@@ -73,8 +74,19 @@ export function generateBatchMarkdown(
     )
   }
 
+  // Relations (batch-only concept; omitted entirely when there are none —
+  // see docs/output-spec.md#relations)
+  const relations = relationsSection(input.relations)
+  if (relations) sections.push(relations)
+
   const body = sections.join("\n\n")
   return input.prefix ? `${input.prefix}\n\n${body}` : body
+}
+
+function relationsSection(relations: Relation[] | undefined): string | null {
+  if (!relations || relations.length === 0) return null
+  const lines = relations.map((r) => `- [#${r.fromId} ↔ #${r.toId}] ${r.instruction}`)
+  return `## Relations\n${lines.join("\n")}`
 }
 
 interface PageContextInput {

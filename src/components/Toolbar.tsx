@@ -23,7 +23,7 @@ import {
   setOutputPreset as persistOutputPreset,
 } from "~lib/settings"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation, PageMetadata } from "~lib/types"
+import type { Annotation, PageMetadata, Relation } from "~lib/types"
 
 import {
   btnBase,
@@ -38,11 +38,13 @@ interface Props {
   annotations: Annotation[]
   activeAnnotationId: number | null
   metadata: PageMetadata | null
+  relations: Relation[]
   onSelectAnnotation: (id: number) => void
   onDeleteAnnotation: (id: number) => void
+  onDeleteRelation: (id: number) => void
   onClearAll: () => void
   onClose: () => void
-  onImportAnnotations: (imported: Annotation[]) => void
+  onImportAnnotations: (imported: Annotation[], relations?: Relation[]) => void
 }
 
 export default function Toolbar(props: Props) {
@@ -71,6 +73,7 @@ export default function Toolbar(props: Props) {
           annotations={props.annotations}
           activeAnnotationId={props.activeAnnotationId}
           metadata={props.metadata}
+          relations={props.relations}
           prefix={t.prefix}
           matchedPrefix={t.matchedPrefix}
           copiedItemId={t.copiedItemId}
@@ -78,6 +81,7 @@ export default function Toolbar(props: Props) {
           onSelectAnnotation={props.onSelectAnnotation}
           onCopyItem={t.handleCopyItem}
           onDeleteAnnotation={props.onDeleteAnnotation}
+          onDeleteRelation={props.onDeleteRelation}
           onClearAll={props.onClearAll}
           onImportAnnotations={props.onImportAnnotations}
         />
@@ -92,26 +96,29 @@ function useToolbar(props: Props) {
   const [outputPreset, setOutputPreset] = useStoredOutputPreset()
   const customTemplates = useCustomTemplates()
   const toolbarRef = useRef<HTMLDivElement>(null)
-  const { annotations, metadata } = props
+  const { annotations, metadata, relations } = props
 
   const { prefix, setPrefix, matchedPrefix } = usePrefixSync()
   useTopLayer(toolbarRef)
 
+  // Relations are a batch-only concept (see docs/output-spec.md#relations) —
+  // callers only pass them for the "Copy All" path, never single-item copy.
   const formatOutput = useCallback(
-    (items: Annotation[]) => {
+    (items: Annotation[], includeRelations: Relation[] = []) => {
       const input = {
         pageUrl: location.href,
         pageTitle: document.title,
         annotations: items,
         prefix: prefix.trim() || undefined,
         metadata: metadata ?? undefined,
+        ...(includeRelations.length > 0 ? { relations: includeRelations } : {}),
       }
       return generateBatchPresetOutput(outputPreset, input, customTemplates)
     },
     [outputPreset, prefix, metadata, customTemplates]
   )
 
-  const actions = useToolbarActions(copy, formatOutput, annotations)
+  const actions = useToolbarActions({ copy, formatOutput, annotations, relations })
 
   return {
     inboxOpen,
@@ -183,20 +190,28 @@ function usePrefixSync() {
   return { prefix, setPrefix, matchedPrefix }
 }
 
-function useToolbarActions(
-  copy: (text: string) => Promise<boolean>,
-  formatOutput: (items: Annotation[]) => string,
+interface ToolbarActionsArgs {
+  copy: (text: string) => Promise<boolean>
+  formatOutput: (items: Annotation[], relations?: Relation[]) => string
   annotations: Annotation[]
-) {
+  relations: Relation[]
+}
+
+function useToolbarActions({
+  copy,
+  formatOutput,
+  annotations,
+  relations,
+}: ToolbarActionsArgs) {
   const [copied, setCopied] = useState(false)
   const [copiedItemId, setCopiedItemId] = useState<number | null>(null)
 
   const handleCopy = useCallback(async () => {
     if (annotations.length === 0) return
-    await copy(formatOutput(annotations))
+    await copy(formatOutput(annotations, relations))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }, [annotations, formatOutput, copy])
+  }, [annotations, relations, formatOutput, copy])
 
   const handleCopyItem = useCallback(
     async (annotation: Annotation) => {

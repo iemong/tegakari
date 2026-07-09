@@ -7,6 +7,7 @@ import type { PageMetadata } from "~lib/types"
 
 import { isFromPlasmoUI } from "./overlay-helpers"
 import { useAnnotations } from "./use-annotations"
+import { useLinkMode } from "./use-link-mode"
 import { type AddAnnotation, usePicking } from "./use-picking"
 
 export function useOverlay() {
@@ -15,6 +16,8 @@ export function useOverlay() {
   const iframeEnabled = useIframeSelection()
   const ann = useAnnotations()
   const picking = usePicking(isActive, iframeEnabled, ann.addAnnotation)
+  const linkMode = useLinkMode()
+  const [activeRelationId, setActiveRelationId] = useState<number | null>(null)
 
   const activate = useCallback(async () => {
     setIsActive(true)
@@ -31,17 +34,31 @@ export function useOverlay() {
     setIsActive(false)
     picking.clearHover()
     ann.setActiveId(null)
-  }, [picking.clearHover, ann.setActiveId])
+    setActiveRelationId(null)
+    linkMode.cancelLink()
+    linkMode.cancelPending()
+  }, [picking.clearHover, ann.setActiveId, linkMode.cancelLink, linkMode.cancelPending])
 
   useEscape({
     isActive,
     count: ann.annotations.length,
     activeId: ann.activeId,
     setActiveId: ann.setActiveId,
+    activeRelationId,
+    setActiveRelationId,
     onClose: close,
   })
 
-  return { isActive, ann, picking, close, ...themeState }
+  return {
+    isActive,
+    ann,
+    picking,
+    close,
+    linkMode,
+    activeRelationId,
+    setActiveRelationId,
+    ...themeState,
+  }
 }
 
 function useOverlayTheme() {
@@ -198,24 +215,31 @@ interface EscapeArgs {
   count: number
   activeId: number | null
   setActiveId: (id: number | null) => void
+  activeRelationId: number | null
+  setActiveRelationId: (id: number | null) => void
   onClose: () => void
 }
 
+// Bubble-phase, so use-link-mode.ts's own capture-phase Escape handler (for
+// link mode / a pending relation form) always wins when both are active.
 function useEscape({
   isActive,
   count,
   activeId,
   setActiveId,
+  activeRelationId,
+  setActiveRelationId,
   onClose,
 }: EscapeArgs) {
   useEffect(() => {
     if (!isActive && count === 0) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return
-      if (activeId !== null) setActiveId(null)
+      if (activeRelationId !== null) setActiveRelationId(null)
+      else if (activeId !== null) setActiveId(null)
       else onClose()
     }
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [isActive, count, activeId, setActiveId, onClose])
+  }, [isActive, count, activeId, setActiveId, activeRelationId, setActiveRelationId, onClose])
 }

@@ -11,6 +11,7 @@ import type {
   ComponentInfo,
   ElementInfo,
   MarkdownInput,
+  Relation,
   StyleDelta,
 } from "./types"
 
@@ -65,13 +66,16 @@ export function generateBatchXml(input: BatchInput): string {
     "full"
   )
   const annotations = input.annotations.map((a) => annotationXmlLines(a))
-  const xml = assembleXml(pageContext, annotations)
+  // Relations (batch-only concept; omitted entirely when there are none —
+  // see docs/output-spec.md#relations)
+  const xml = assembleXml(pageContext, annotations, relationXmlLines(input.relations))
   return input.prefix ? `${input.prefix}\n${xml}` : xml
 }
 
 function assembleXml(
   pageContextBody: string[],
-  annotationBodies: string[][]
+  annotationBodies: string[][],
+  extraLines: string[] = []
 ): string {
   const lines = [
     CLAUDE_CODE_MARKER,
@@ -79,9 +83,19 @@ function assembleXml(
     ...pageContextBody,
     "</page-context>",
     ...annotationBodies.flat(),
+    ...extraLines,
     CLOSE_TAG,
   ]
   return lines.join("\n")
+}
+
+function relationXmlLines(relations: Relation[] | undefined): string[] {
+  if (!relations || relations.length === 0) return []
+  const lines: string[] = []
+  for (const r of relations) {
+    lines.push(`<relation id="${r.id}" from="${r.fromId}" to="${r.toId}">`, r.instruction, "</relation>")
+  }
+  return lines
 }
 
 function annotationXmlLines(annotation: XmlAnnotationInput): string[] {

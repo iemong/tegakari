@@ -7,26 +7,23 @@ import {
 } from "react"
 
 import {
-  clearAllAnnotations,
   collectPageMetadata,
   loadAnnotationStore,
   updateAnnotations,
 } from "~lib/annotation-store"
 import { generateSelector } from "~lib/selector"
-import { revertAnnotationStylePreview } from "~lib/style-preview"
-import type {
-  Annotation,
-  CollectResult,
-  PageMetadata,
-  Rect,
-  StyleDelta,
-} from "~lib/types"
+import type { Annotation, CollectResult, PageMetadata, Rect, Relation } from "~lib/types"
 
 import { buildElementInfo, captureScreenshot, cropToElement } from "./overlay-helpers"
+import { useAnnotationActions } from "./use-annotation-actions"
 import type { AddAnnotationOptions, Point } from "./use-picking"
+import { useRelationActions, useRelationState } from "./use-relations"
 
-type Persist = (anns: Annotation[]) => Promise<void>
-type Mutate = (transform: (prev: Annotation[]) => Annotation[]) => void
+type Persist = (anns: Annotation[], relations: Relation[]) => Promise<void>
+export type Mutate = (
+  annTransform: (prev: Annotation[]) => Annotation[],
+  relTransform?: (prev: Relation[]) => Relation[]
+) => void
 
 export function useAnnotations() {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
@@ -34,24 +31,39 @@ export function useAnnotations() {
   const [metadata, setMetadata] = useState<PageMetadata | null>(null)
   const nextIdRef = useRef(1)
   const pendingIdRef = useRef<number | null>(null)
+  const { relations, setRelations, nextRelationIdRef } = useRelationState()
 
   const persist = usePersist(metadata)
-  const mutate = useMutate(setAnnotations, persist)
-  const loadPersisted = useLoadPersisted(setAnnotations, setMetadata, nextIdRef)
-  const addAnnotation = useAddAnnotation({
-    mutate,
-    setActiveId,
+  const mutate = useMutate({ setAnnotations, setRelations, persist })
+  const mutateRelations = useCallback(
+    (transform: (prev: Relation[]) => Relation[]) => mutate((a) => a, transform),
+    [mutate]
+  )
+  const loadPersisted = useLoadPersisted({
+    setAnnotations,
+    setRelations,
+    setMetadata,
     nextIdRef,
-    pendingIdRef,
+    nextRelationIdRef,
   })
+  const addAnnotation = useAddAnnotation({ mutate, setActiveId, nextIdRef, pendingIdRef })
   const actions = useAnnotationActions({
     mutate,
     setAnnotations,
+    setRelations,
     setActiveId,
     nextIdRef,
+    nextRelationIdRef,
     annotations,
+    relations,
   })
-  useResultListener({ setAnnotations, setMetadata, persist, pendingIdRef })
+  const relationActions = useRelationActions({
+    mutateRelations,
+    annotations,
+    relations,
+    nextRelationIdRef,
+  })
+  useResultListener({ mutate, setMetadata, pendingIdRef })
 
   return {
     annotations,
@@ -59,51 +71,83 @@ export function useAnnotations() {
     setActiveId,
     metadata,
     setMetadata,
+    relations,
     loadPersisted,
     addAnnotation,
     ...actions,
+    ...relationActions,
   }
 }
 
 function usePersist(metadata: PageMetadata | null): Persist {
   return useCallback(
-    async (anns: Annotation[]) => {
+    async (anns: Annotation[], relations: Relation[]) => {
       const meta = metadata ?? collectPageMetadata(null)
-      await updateAnnotations(location.href, meta, anns)
+      await updateAnnotations(location.href, { metadata: meta, annotations: anns, relations })
     },
     [metadata]
   )
 }
 
-function useMutate(
-  setAnnotations: (updater: (prev: Annotation[]) => Annotation[]) => void,
+interface MutateDeps {
+  setAnnotations: (updater: (prev: Annotation[]) => Annotation[]) => void
+  setRelations: (updater: (prev: Relation[]) => Relation[]) => void
   persist: Persist
-): Mutate {
+}
+
+/**
+ * Applies an annotations transform and (optionally) a relations transform
+ * together, then persists both as a single atomic write — this is what makes
+ * cross-cutting changes like cascade-delete-on-annotation-delete correct
+ * without stale closures or extra ref bookkeeping.
+ */
+function useMutate({ setAnnotations, setRelations, persist }: MutateDeps): Mutate {
   return useCallback(
-    (transform: (prev: Annotation[]) => Annotation[]) => {
-      setAnnotations((prev) => {
-        const updated = transform(prev)
-        persist(updated)
-        return updated
+    (
+      annTransform: (prev: Annotation[]) => Annotation[],
+      relTransform: (prev: Relation[]) => Relation[] = (r) => r
+    ) => {
+      setAnnotations((prevAnn) => {
+        const updatedAnn = annTransform(prevAnn)
+        setRelations((prevRel) => {
+          const updatedRel = relTransform(prevRel)
+          persist(updatedAnn, updatedRel)
+          return updatedRel
+        })
+        return updatedAnn
       })
     },
-    [setAnnotations, persist]
+    [setAnnotations, setRelations, persist]
   )
 }
 
-function useLoadPersisted(
-  setAnnotations: (anns: Annotation[]) => void,
-  setMetadata: (meta: PageMetadata | null) => void,
+interface LoadPersistedDeps {
+  setAnnotations: (anns: Annotation[]) => void
+  setRelations: (rels: Relation[]) => void
+  setMetadata: (meta: PageMetadata | null) => void
   nextIdRef: MutableRefObject<number>
-) {
+  nextRelationIdRef: MutableRefObject<number>
+}
+
+function useLoadPersisted({
+  setAnnotations,
+  setRelations,
+  setMetadata,
+  nextIdRef,
+  nextRelationIdRef,
+}: LoadPersistedDeps) {
   return useCallback(async () => {
     const store = await loadAnnotationStore(location.href)
     if (store && store.annotations.length > 0) {
       setAnnotations(store.annotations)
       nextIdRef.current = Math.max(...store.annotations.map((a) => a.id)) + 1
       setMetadata(store.metadata)
+      const rels = store.relations ?? []
+      setRelations(rels)
+      nextRelationIdRef.current =
+        rels.length > 0 ? Math.max(...rels.map((r) => r.id)) + 1 : 1
     }
-  }, [setAnnotations, setMetadata, nextIdRef])
+  }, [setAnnotations, setRelations, setMetadata, nextIdRef, nextRelationIdRef])
 }
 
 interface AddDeps {
@@ -163,101 +207,13 @@ function attachScreenshot(id: number, rect: Rect, mutate: Mutate) {
   })
 }
 
-/** Payload for `handleUpdateInstruction`: the pin popover's full editable state, saved atomically. */
-export interface AnnotationEditPayload {
-  instruction: string
-  tags?: string[]
-  styleDelta?: StyleDelta[]
-}
-
-function nonEmpty<T>(arr: T[] | undefined): T[] | undefined {
-  return arr && arr.length > 0 ? arr : undefined
-}
-
-function applyEditPayload(a: Annotation, payload: AnnotationEditPayload): Annotation {
-  return {
-    ...a,
-    instruction: payload.instruction,
-    tags: nonEmpty(payload.tags),
-    styleDelta: nonEmpty(payload.styleDelta),
-  }
-}
-
-interface ActionDeps {
-  mutate: Mutate
-  setAnnotations: (anns: Annotation[]) => void
-  setActiveId: (updater: (prev: number | null) => number | null) => void
-  nextIdRef: MutableRefObject<number>
-  annotations: Annotation[]
-}
-
-function useAnnotationActions({
-  mutate,
-  setAnnotations,
-  setActiveId,
-  nextIdRef,
-  annotations,
-}: ActionDeps) {
-  const handleUpdateInstruction = useCallback(
-    (id: number, payload: AnnotationEditPayload) => {
-      mutate((prev) => prev.map((a) => (a.id === id ? applyEditPayload(a, payload) : a)))
-    },
-    [mutate]
-  )
-
-  const handleDeleteAnnotation = useCallback(
-    (id: number) => {
-      const target = annotations.find((a) => a.id === id)
-      if (target) revertAnnotationStylePreview(target)
-      mutate((prev) => prev.filter((a) => a.id !== id))
-      setActiveId((prev) => (prev === id ? null : prev))
-    },
-    [mutate, setActiveId, annotations]
-  )
-
-  const handleClearAll = useCallback(async () => {
-    for (const a of annotations) revertAnnotationStylePreview(a)
-    setAnnotations([])
-    setActiveId(() => null)
-    nextIdRef.current = 1
-    await clearAllAnnotations(location.href)
-  }, [setAnnotations, setActiveId, nextIdRef, annotations])
-
-  // Append imported annotations, renumbering them to avoid id collisions
-  const handleImportAnnotations = useCallback(
-    (imported: Annotation[]) => {
-      mutate((prev) => {
-        const renumbered = imported.map((a) => ({
-          ...a,
-          id: nextIdRef.current++,
-        }))
-        return [...prev, ...renumbered]
-      })
-    },
-    [mutate, nextIdRef]
-  )
-
-  return {
-    handleUpdateInstruction,
-    handleDeleteAnnotation,
-    handleClearAll,
-    handleImportAnnotations,
-  }
-}
-
 interface ResultDeps {
-  setAnnotations: (updater: (prev: Annotation[]) => Annotation[]) => void
+  mutate: Mutate
   setMetadata: (updater: (prev: PageMetadata | null) => PageMetadata | null) => void
-  persist: Persist
   pendingIdRef: MutableRefObject<number | null>
 }
 
-function useResultListener({
-  setAnnotations,
-  setMetadata,
-  persist,
-  pendingIdRef,
-}: ResultDeps) {
+function useResultListener({ mutate, setMetadata, pendingIdRef }: ResultDeps) {
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (event.source !== window) return
@@ -267,24 +223,18 @@ function useResultListener({
       if (pendingId === null) return
       pendingIdRef.current = null
 
-      setAnnotations((prev) => {
-        const updated = prev.map((a) =>
+      mutate((prev) =>
+        prev.map((a) =>
           a.id === pendingId
-            ? {
-                ...a,
-                frameworkInfo: result.framework,
-                componentInfo: result.component,
-              }
+            ? { ...a, frameworkInfo: result.framework, componentInfo: result.component }
             : a
         )
-        persist(updated)
-        if (result.framework) {
-          setMetadata((m) => (m ? { ...m, frameworkInfo: result.framework } : m))
-        }
-        return updated
-      })
+      )
+      if (result.framework) {
+        setMetadata((m) => (m ? { ...m, frameworkInfo: result.framework } : m))
+      }
     }
     window.addEventListener("message", handler)
     return () => window.removeEventListener("message", handler)
-  }, [setAnnotations, setMetadata, persist, pendingIdRef])
+  }, [mutate, setMetadata, pendingIdRef])
 }

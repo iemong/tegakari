@@ -77,6 +77,20 @@ export function generateBatchJsonl(input: BatchInput): string {
     lines.push(JSON.stringify(buildAnnotationEntry(annotation)))
   }
 
+  // Relations (batch-only concept; omitted entirely when there are none —
+  // see docs/output-spec.md#relations)
+  for (const relation of input.relations ?? []) {
+    lines.push(
+      JSON.stringify({
+        type: "relation",
+        id: relation.id,
+        from: relation.fromId,
+        to: relation.toId,
+        instruction: relation.instruction,
+      })
+    )
+  }
+
   return lines.join("\n")
 }
 

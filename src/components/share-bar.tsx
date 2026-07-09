@@ -15,7 +15,7 @@ import {
 } from "~lib/annotation-share"
 import { collectPageMetadata } from "~lib/annotation-store"
 import type { Theme } from "~lib/theme"
-import type { Annotation, PageMetadata } from "~lib/types"
+import type { Annotation, PageMetadata, Relation } from "~lib/types"
 
 import { btnBase } from "./inbox-styles"
 
@@ -25,14 +25,16 @@ type Message = { tone: Tone; text: string }
 interface Props {
   theme: Theme
   annotations: Annotation[]
+  relations: Relation[]
   metadata: PageMetadata | null
-  onImportAnnotations: (imported: Annotation[]) => void
+  onImportAnnotations: (imported: Annotation[], relations?: Relation[]) => void
 }
 
 /** Export / import the current annotation set as a tegakari-annotations JSON file */
 export function ShareBar({
   theme,
   annotations,
+  relations,
   metadata,
   onImportAnnotations,
 }: Props) {
@@ -45,12 +47,12 @@ export function ShareBar({
     // preventDefaults any click outside the Plasmo UI, which cancels the
     // download when the anchor sits in document.body.
     const container = fileInputRef.current?.parentElement ?? document.body
-    downloadAnnotationsFile(annotations, metadata, container)
+    downloadAnnotationsFile({ annotations, relations, metadata, container })
     setMessage({
       tone: "success",
       text: `Exported ${annotations.length} annotation(s).`,
     })
-  }, [annotations, metadata])
+  }, [annotations, relations, metadata])
 
   const handleImportFile = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -96,15 +98,24 @@ export function ShareBar({
   )
 }
 
-function downloadAnnotationsFile(
-  annotations: Annotation[],
-  metadata: PageMetadata | null,
+interface DownloadArgs {
+  annotations: Annotation[]
+  relations: Relation[]
+  metadata: PageMetadata | null
   container: HTMLElement
-) {
+}
+
+function downloadAnnotationsFile({
+  annotations,
+  relations,
+  metadata,
+  container,
+}: DownloadArgs) {
   const store = {
     url: location.href,
     metadata: metadata ?? collectPageMetadata(null),
     annotations,
+    ...(relations.length > 0 ? { relations } : {}),
   }
   const blob = new Blob([serializeAnnotationStore(store)], {
     type: "application/json",
@@ -121,7 +132,7 @@ function downloadAnnotationsFile(
 
 async function importAnnotationsFile(
   file: File,
-  onImportAnnotations: (imported: Annotation[]) => void
+  onImportAnnotations: (imported: Annotation[], relations?: Relation[]) => void
 ): Promise<Message> {
   let text: string
   try {
@@ -138,7 +149,7 @@ async function importAnnotationsFile(
     return { tone: "error", text: errors.join(" ") || "Import failed." }
   }
 
-  onImportAnnotations(store.annotations)
+  onImportAnnotations(store.annotations, store.relations)
 
   if (!isSamePage(store.url, location.href)) {
     return {

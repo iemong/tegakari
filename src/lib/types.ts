@@ -126,11 +126,27 @@ export interface Annotation {
   styleDelta?: StyleDelta[]
 }
 
+/**
+ * A user-authored link between two annotations (pins), e.g. "make the
+ * spacing between these equal". `fromId`/`toId` reference `Annotation.id`;
+ * order is not semantically meaningful (an unordered pair). `instruction`
+ * must be non-empty — an empty instruction means "don't create this
+ * relation" (see `~lib/relations`).
+ */
+export interface Relation {
+  id: number
+  fromId: number
+  toId: number
+  instruction: string
+}
+
 /** Stored per URL */
 export interface AnnotationStore {
   url: string
   metadata: PageMetadata
   annotations: Annotation[]
+  /** Omitted (or empty) means "no relations" — also the legacy shape predating this field. */
+  relations?: Relation[]
 }
 
 export interface MarkdownInput {
@@ -156,6 +172,8 @@ export interface BatchInput {
   annotations: Annotation[]
   prefix?: string
   metadata?: PageMetadata
+  /** Batch-only concept (see `Relation`) — omitted/empty means "no relations". */
+  relations?: Relation[]
 }
 
 /**

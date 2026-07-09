@@ -102,10 +102,14 @@ it("annotation-store: limits saved annotations to the newest 50", async () => {
 })
 
 it("annotation-store: updates and clears annotations", async () => {
-  await updateAnnotations(metadata.url, metadata, [annotation(1), annotation(2)])
+  await updateAnnotations(metadata.url, {
+    metadata,
+    annotations: [annotation(1), annotation(2)],
+  })
 
   const saved = storage[storageKey(metadata.url)] as AnnotationStore
   expect(saved.annotations.map((item) => item.id)).toEqual([1, 2])
+  expect(saved.relations).toEqual([])
 
   await clearAllAnnotations(metadata.url)
   expect(storage[storageKey(metadata.url)]).toBeUndefined()

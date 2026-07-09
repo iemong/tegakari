@@ -9,7 +9,9 @@ import {
   headerTextStyle,
   iconButtonStyle,
   idBadgeStyle,
+  linkButtonStyle,
   pinMarkerStyle,
+  type PinMarkerState,
   popoverContainerStyle,
   popoverStyle,
   popoverTextareaStyle,
@@ -34,6 +36,11 @@ interface Props {
   onUpdateInstruction: (id: number, payload: UpdatePayload) => void
   onDelete: (id: number) => void
   onDeselect: () => void
+  /** This pin is the current "Link" source (see `use-link-mode.ts`). */
+  isLinkSource?: boolean
+  /** Link mode is active (for some pin, not necessarily this one). */
+  linkModeActive?: boolean
+  onStartLink: () => void
 }
 
 export default function AnnotationPin(props: Props) {
@@ -70,8 +77,12 @@ export default function AnnotationPin(props: Props) {
       <PinMarker
         pos={pos}
         id={annotation.id}
-        isActive={isActive}
         theme={theme}
+        state={{
+          isActive,
+          isLinkSource: props.isLinkSource,
+          linkModeActive: props.linkModeActive,
+        }}
         onActivate={() => (isActive ? handleSave() : onClick())}
       />
       {isActive && (
@@ -88,6 +99,7 @@ export default function AnnotationPin(props: Props) {
           onSave={handleSave}
           onDelete={props.onDelete}
           onDeselect={onDeselect}
+          onStartLink={props.onStartLink}
         />
       )}
     </>
@@ -97,12 +109,12 @@ export default function AnnotationPin(props: Props) {
 interface PinMarkerProps {
   pos: { x: number; y: number }
   id: number
-  isActive: boolean
   theme: Theme
+  state: PinMarkerState
   onActivate: () => void
 }
 
-function PinMarker({ pos, id, isActive, theme, onActivate }: PinMarkerProps) {
+function PinMarker({ pos, id, theme, state, onActivate }: PinMarkerProps) {
   return (
     <div
       data-testid={`tegakari-pin-${id}`}
@@ -110,7 +122,7 @@ function PinMarker({ pos, id, isActive, theme, onActivate }: PinMarkerProps) {
         e.stopPropagation()
         onActivate()
       }}
-      style={pinMarkerStyle(theme, pos, isActive)}>
+      style={pinMarkerStyle(theme, pos, state)}>
       {id}
     </div>
   )
@@ -129,6 +141,7 @@ interface PinPopoverProps {
   onSave: () => void
   onDelete: (id: number) => void
   onDeselect: () => void
+  onStartLink: () => void
 }
 
 function PinPopover({
@@ -144,6 +157,7 @@ function PinPopover({
   onSave,
   onDelete,
   onDeselect,
+  onStartLink,
 }: PinPopoverProps) {
   return (
     <div
@@ -154,6 +168,10 @@ function PinPopover({
         theme={theme}
         onDelete={() => {
           onDelete(annotation.id)
+          onDeselect()
+        }}
+        onStartLink={() => {
+          onStartLink()
           onDeselect()
         }}
       />
@@ -197,12 +215,14 @@ interface PinPopoverHeaderProps {
   annotation: Annotation
   theme: Theme
   onDelete: () => void
+  onStartLink: () => void
 }
 
 function PinPopoverHeader({
   annotation,
   theme,
   onDelete,
+  onStartLink,
 }: PinPopoverHeaderProps) {
   const { tag, text } = annotation.elementInfo
   return (
@@ -216,6 +236,12 @@ function PinPopoverHeader({
         </span>
       )}
       <div style={headerActionsStyle}>
+        <button
+          onClick={onStartLink}
+          title="Link to another pin"
+          style={linkButtonStyle(theme)}>
+          Link
+        </button>
         <IconButton title="Delete" onClick={onDelete}>
           <TrashIcon color={theme.danger} />
         </IconButton>

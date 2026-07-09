@@ -215,3 +215,49 @@ export function instructionStyle(theme: Theme): CSSProperties {
     whiteSpace: "nowrap",
   }
 }
+
+export function relationsSectionStyle(theme: Theme): CSSProperties {
+  return {
+    borderTop: `1px solid ${theme.border}`,
+    padding: "6px 0",
+    flexShrink: 0,
+  }
+}
+
+export function relationsHeaderStyle(theme: Theme): CSSProperties {
+  return {
+    padding: "4px 16px",
+    fontSize: 11,
+    fontWeight: 600,
+    color: theme.textMuted,
+  }
+}
+
+export function relationRowStyle(): CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "5px 16px",
+  }
+}
+
+export function relationPairStyle(theme: Theme): CSSProperties {
+  return {
+    fontFamily: theme.fontMono,
+    fontSize: 11,
+    color: theme.textSecondary,
+    flexShrink: 0,
+  }
+}
+
+export function relationInstructionStyle(theme: Theme): CSSProperties {
+  return {
+    flex: 1,
+    fontSize: 11,
+    color: theme.textPrimary,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }
+}

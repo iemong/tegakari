@@ -3,7 +3,8 @@
 // set pinned by one person (e.g. a PM on a staging site) can be reviewed and
 // fed to an AI editor by another.
 
-import type { Annotation, AnnotationStore, StyleDelta } from "./types"
+import { isSameRelationPair } from "./relations"
+import type { Annotation, AnnotationStore, Relation, StyleDelta } from "./types"
 
 const EXPORT_FORMAT = "tegakari-annotations"
 const EXPORT_VERSION = 1
@@ -90,11 +91,15 @@ export function parseAnnotationExport(text: string): ParseResult {
     return { store: null, errors: ["No valid annotations found.", ...errors] }
   }
 
+  const annotationIds = new Set(annotations.map((a) => a.id))
+  const relations = validRelations(store.relations, annotationIds)
+
   return {
     store: {
       url: store.url,
       metadata: store.metadata as AnnotationStore["metadata"],
       annotations,
+      ...relations,
     },
     errors,
   }
@@ -165,6 +170,40 @@ function validStyleDelta(
     return {}
   }
   return { styleDelta }
+}
+
+function isRelationEntry(entry: unknown): entry is Relation {
+  if (typeof entry !== "object" || entry === null) return false
+  const r = entry as Partial<Relation>
+  return (
+    typeof r.id === "number" &&
+    typeof r.fromId === "number" &&
+    typeof r.toId === "number" &&
+    typeof r.instruction === "string" &&
+    r.instruction.trim().length > 0
+  )
+}
+
+/**
+ * Keep `relations` only for entries with a valid shape that reference two
+ * distinct annotation ids present in this same import, deduped by unordered
+ * pair. Drops the key entirely (rather than an empty array) when nothing
+ * survives, matching the `tags`/`styleDelta` "omitted means none" pattern.
+ */
+function validRelations(
+  relations: unknown,
+  annotationIds: Set<number>
+): { relations: Relation[] } | Record<string, never> {
+  if (!Array.isArray(relations)) return {}
+  const kept: Relation[] = []
+  for (const entry of relations) {
+    if (!isRelationEntry(entry)) continue
+    if (entry.fromId === entry.toId) continue
+    if (!annotationIds.has(entry.fromId) || !annotationIds.has(entry.toId)) continue
+    if (kept.some((r) => isSameRelationPair(r, entry.fromId, entry.toId))) continue
+    kept.push({ ...entry, instruction: entry.instruction.trim() })
+  }
+  return kept.length > 0 ? { relations: kept } : {}
 }
 
 /** Compare URLs ignoring the hash, mirroring the annotation-store key rule */

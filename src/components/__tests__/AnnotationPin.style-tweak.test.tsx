@@ -43,6 +43,7 @@ it("AnnotationPin: editing a style row previews it live and Save persists styleD
       onUpdateInstruction={onUpdateInstruction}
       onDelete={vi.fn()}
       onDeselect={vi.fn()}
+      onStartLink={vi.fn()}
     />
   )
 
@@ -80,6 +81,7 @@ it("AnnotationPin: reopening restores a saved styleDelta into the row and does n
       onUpdateInstruction={vi.fn()}
       onDelete={vi.fn()}
       onDeselect={vi.fn()}
+      onStartLink={vi.fn()}
     />
   )
 

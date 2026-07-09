@@ -2,9 +2,10 @@ import { type ReactNode, useCallback, useState } from "react"
 
 import { TrashIcon } from "~components/icons"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation, PageMetadata } from "~lib/types"
+import type { Annotation, PageMetadata, Relation } from "~lib/types"
 
 import { AnnotationRow } from "./annotation-row"
+import { RelationRow } from "./relation-row"
 import { ShareBar } from "./share-bar"
 import {
   clearButtonStyle,
@@ -14,12 +15,15 @@ import {
   panelStyle,
   prefixInputStyle,
   prefixRowStyle,
+  relationsHeaderStyle,
+  relationsSectionStyle,
 } from "./inbox-styles"
 
 interface Props {
   annotations: Annotation[]
   activeAnnotationId: number | null
   metadata: PageMetadata | null
+  relations: Relation[]
   prefix: string
   matchedPrefix: string | null
   copiedItemId: number | null
@@ -27,8 +31,9 @@ interface Props {
   onSelectAnnotation: (id: number) => void
   onCopyItem: (annotation: Annotation) => void
   onDeleteAnnotation: (id: number) => void
+  onDeleteRelation: (id: number) => void
   onClearAll: () => void
-  onImportAnnotations: (imported: Annotation[]) => void
+  onImportAnnotations: (imported: Annotation[], relations?: Relation[]) => void
 }
 
 export default function InboxPanel(props: Props) {
@@ -44,6 +49,7 @@ export default function InboxPanel(props: Props) {
           <ShareBar
             theme={theme}
             annotations={props.annotations}
+            relations={props.relations}
             metadata={props.metadata}
             onImportAnnotations={props.onImportAnnotations}
           />
@@ -56,6 +62,35 @@ export default function InboxPanel(props: Props) {
         onPrefixChange={props.onPrefixChange}
       />
       <AnnotationList theme={theme} items={props.annotations} props={props} />
+      <RelationsSection
+        theme={theme}
+        relations={props.relations}
+        onDeleteRelation={props.onDeleteRelation}
+      />
+    </div>
+  )
+}
+
+function RelationsSection({
+  theme,
+  relations,
+  onDeleteRelation,
+}: {
+  theme: Theme
+  relations: Relation[]
+  onDeleteRelation: (id: number) => void
+}) {
+  if (relations.length === 0) return null
+  return (
+    <div style={relationsSectionStyle(theme)}>
+      <div style={relationsHeaderStyle(theme)}>Relations ({relations.length})</div>
+      {relations.map((relation) => (
+        <RelationRow
+          key={relation.id}
+          relation={relation}
+          onDelete={() => onDeleteRelation(relation.id)}
+        />
+      ))}
     </div>
   )
 }

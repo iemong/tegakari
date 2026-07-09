@@ -1,4 +1,4 @@
-import type { Annotation, AnnotationStore, PageMetadata } from "./types"
+import type { AnnotationStore, PageMetadata } from "./types"
 
 const STORAGE_PREFIX = "tegakariAnnotations:"
 const MAX_ANNOTATIONS = 50
@@ -45,10 +45,9 @@ export async function saveAnnotationStore(
 
 export async function updateAnnotations(
   url: string,
-  metadata: PageMetadata,
-  annotations: Annotation[]
+  data: Pick<AnnotationStore, "metadata" | "annotations" | "relations">
 ): Promise<void> {
-  await saveAnnotationStore({ url, metadata, annotations })
+  await saveAnnotationStore({ url, ...data, relations: data.relations ?? [] })
 }
 
 export async function clearAllAnnotations(url: string): Promise<void> {
