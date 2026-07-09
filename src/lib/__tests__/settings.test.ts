@@ -91,4 +91,21 @@ describe("settings: output preset", () => {
       [OUTPUT_FORMAT_KEY]: "claude-code",
     })
   })
+
+  it("reads a custom:<id> value as valid (template existence isn't checked here)", async () => {
+    storage[OUTPUT_FORMAT_KEY] = "custom:abc-123"
+    await expect(loadOutputPreset()).resolves.toBe("custom:abc-123")
+  })
+
+  it("persists a custom:<id> value under the same storage key", () => {
+    setOutputPreset("custom:abc-123")
+    expect(storageSet).toHaveBeenCalledWith({
+      [OUTPUT_FORMAT_KEY]: "custom:abc-123",
+    })
+  })
+
+  it("still falls back to jsonl for a string that merely starts with 'custom' without the colon", async () => {
+    storage[OUTPUT_FORMAT_KEY] = "customized"
+    await expect(loadOutputPreset()).resolves.toBe("jsonl")
+  })
 })

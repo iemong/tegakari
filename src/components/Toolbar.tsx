@@ -12,13 +12,18 @@ import { CloseIcon, CopyIcon, InboxIcon } from "~components/icons"
 import { PresetDropdown } from "~components/preset-dropdown"
 import { useClipboard } from "~hooks/use-clipboard"
 import { generateBatchPresetOutput } from "~lib/output-presets"
+import {
+  loadOutputTemplates,
+  type OutputTemplate,
+  type SelectedOutputPreset,
+} from "~lib/output-templates"
 import { findMatchingPrefix, loadPrefixRules } from "~lib/prefix-rules"
 import {
   loadOutputPreset,
   setOutputPreset as persistOutputPreset,
 } from "~lib/settings"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation, OutputPreset, PageMetadata } from "~lib/types"
+import type { Annotation, PageMetadata } from "~lib/types"
 
 import {
   btnBase,
@@ -56,6 +61,7 @@ export default function Toolbar(props: Props) {
         copied={t.copied}
         onCopy={t.handleCopy}
         outputPreset={t.outputPreset}
+        customTemplates={t.customTemplates}
         onPresetChange={t.setOutputPreset}
         onClose={props.onClose}
       />
@@ -84,6 +90,7 @@ function useToolbar(props: Props) {
   const { copy } = useClipboard()
   const [inboxOpen, setInboxOpen] = useState(false)
   const [outputPreset, setOutputPreset] = useStoredOutputPreset()
+  const customTemplates = useCustomTemplates()
   const toolbarRef = useRef<HTMLDivElement>(null)
   const { annotations, metadata } = props
 
@@ -99,9 +106,9 @@ function useToolbar(props: Props) {
         prefix: prefix.trim() || undefined,
         metadata: metadata ?? undefined,
       }
-      return generateBatchPresetOutput(outputPreset, input)
+      return generateBatchPresetOutput(outputPreset, input, customTemplates)
     },
-    [outputPreset, prefix, metadata]
+    [outputPreset, prefix, metadata, customTemplates]
   )
 
   const actions = useToolbarActions(copy, formatOutput, annotations)
@@ -111,6 +118,7 @@ function useToolbar(props: Props) {
     setInboxOpen,
     outputPreset,
     setOutputPreset,
+    customTemplates,
     toolbarRef,
     annotations,
     prefix,
@@ -120,20 +128,33 @@ function useToolbar(props: Props) {
   }
 }
 
+// Custom templates are loaded once on mount (not re-read on every copy) —
+// the Options page is the only place that edits them, and the extra
+// storage round trip per click isn't worth the freshness it would buy.
+function useCustomTemplates(): OutputTemplate[] {
+  const [templates, setTemplates] = useState<OutputTemplate[]>([])
+
+  useEffect(() => {
+    loadOutputTemplates().then(setTemplates)
+  }, [])
+
+  return templates
+}
+
 // Output preset persists across sessions so users who prefer e.g. Cursor's
 // trimmed Markdown don't have to re-select it from the JSONL default every
 // time.
 function useStoredOutputPreset(): [
-  OutputPreset,
-  (preset: OutputPreset) => void,
+  SelectedOutputPreset,
+  (preset: SelectedOutputPreset) => void,
 ] {
-  const [outputPreset, setOutputPreset] = useState<OutputPreset>("jsonl")
+  const [outputPreset, setOutputPreset] = useState<SelectedOutputPreset>("jsonl")
 
   useEffect(() => {
     loadOutputPreset().then(setOutputPreset)
   }, [])
 
-  const update = useCallback((preset: OutputPreset) => {
+  const update = useCallback((preset: SelectedOutputPreset) => {
     setOutputPreset(preset)
     persistOutputPreset(preset)
   }, [])
@@ -198,8 +219,9 @@ interface ToolbarBarProps {
   count: number
   copied: boolean
   onCopy: () => void
-  outputPreset: OutputPreset
-  onPresetChange: (preset: OutputPreset) => void
+  outputPreset: SelectedOutputPreset
+  customTemplates: OutputTemplate[]
+  onPresetChange: (preset: SelectedOutputPreset) => void
   onClose: () => void
 }
 
@@ -213,6 +235,7 @@ function ToolbarBar({
   copied,
   onCopy,
   outputPreset,
+  customTemplates,
   onPresetChange,
   onClose,
 }: ToolbarBarProps) {
@@ -239,6 +262,7 @@ function ToolbarBar({
       <PresetDropdown
         theme={theme}
         preset={outputPreset}
+        customTemplates={customTemplates}
         onPresetChange={onPresetChange}
       />
       <div style={dividerStyle(theme)} />

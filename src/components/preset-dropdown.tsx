@@ -8,17 +8,34 @@ import {
 
 import { ChevronDownIcon } from "~components/icons"
 import { OUTPUT_PRESETS, OUTPUT_PRESET_LABELS } from "~lib/output-presets"
+import {
+  customPresetTemplateId,
+  isCustomPresetValue,
+  toCustomPresetValue,
+  type OutputTemplate,
+  type SelectedOutputPreset,
+} from "~lib/output-templates"
 import type { Theme } from "~lib/theme"
-import type { OutputPreset } from "~lib/types"
 
 interface Props {
   theme: Theme
-  preset: OutputPreset
-  onPresetChange: (preset: OutputPreset) => void
+  preset: SelectedOutputPreset
+  customTemplates: OutputTemplate[]
+  onPresetChange: (preset: SelectedOutputPreset) => void
 }
 
-/** Dropdown selecting one of the 5 output presets (jsonl/markdown/claude-code/cursor/minimal). */
-export function PresetDropdown({ theme, preset, onPresetChange }: Props) {
+/** Resolve the trigger/selected label for a preset value, built-in or custom. */
+function presetLabel(
+  preset: SelectedOutputPreset,
+  customTemplates: OutputTemplate[]
+): string {
+  if (!isCustomPresetValue(preset)) return OUTPUT_PRESET_LABELS[preset]
+  const templateId = customPresetTemplateId(preset)
+  return customTemplates.find((t) => t.id === templateId)?.name ?? "Custom template"
+}
+
+/** Dropdown selecting an output preset: the 5 built-ins (jsonl/markdown/claude-code/cursor/minimal) plus any user-defined custom templates. */
+export function PresetDropdown({ theme, preset, customTemplates, onPresetChange }: Props) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   useCloseOnOutsideClick(containerRef, open, () => setOpen(false))
@@ -32,13 +49,14 @@ export function PresetDropdown({ theme, preset, onPresetChange }: Props) {
         onClick={() => setOpen((v) => !v)}
         style={triggerStyle(theme, open)}
         title="Output preset">
-        {OUTPUT_PRESET_LABELS[preset]}
+        {presetLabel(preset, customTemplates)}
         <ChevronDownIcon color={theme.textMuted} />
       </button>
       {open && (
         <PresetMenu
           theme={theme}
           preset={preset}
+          customTemplates={customTemplates}
           onSelect={(next) => {
             onPresetChange(next)
             setOpen(false)
@@ -52,11 +70,13 @@ export function PresetDropdown({ theme, preset, onPresetChange }: Props) {
 function PresetMenu({
   theme,
   preset,
+  customTemplates,
   onSelect,
 }: {
   theme: Theme
-  preset: OutputPreset
-  onSelect: (preset: OutputPreset) => void
+  preset: SelectedOutputPreset
+  customTemplates: OutputTemplate[]
+  onSelect: (preset: SelectedOutputPreset) => void
 }) {
   return (
     <div role="listbox" style={menuStyle(theme)}>
@@ -70,6 +90,19 @@ function PresetMenu({
           {OUTPUT_PRESET_LABELS[p]}
         </button>
       ))}
+      {customTemplates.map((template) => {
+        const value = toCustomPresetValue(template.id)
+        return (
+          <button
+            key={template.id}
+            role="option"
+            aria-selected={value === preset}
+            onClick={() => onSelect(value)}
+            style={menuItemStyle(theme, value === preset)}>
+            {template.name}
+          </button>
+        )
+      })}
     </div>
   )
 }

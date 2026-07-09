@@ -4,6 +4,7 @@ import { AppearanceSection } from "./options/components/appearance-section"
 import { BehaviorSection } from "./options/components/behavior-section"
 import { OptionsFooter } from "./options/components/options-footer"
 import { OptionsHeader } from "./options/components/options-header"
+import { OutputTemplatesSection } from "./options/components/output-templates-section"
 import { PrefixRulesSection } from "./options/components/prefix-rules-section"
 import { SettingsSection } from "./options/components/settings-section"
 import { useIframeSelection } from "./options/hooks/use-iframe-selection"
@@ -38,6 +39,8 @@ export default function OptionsPage() {
         </SettingsSection>
 
         <PrefixRulesSection theme={theme} />
+
+        <OutputTemplatesSection theme={theme} />
 
         <OptionsFooter theme={theme} />
       </div>

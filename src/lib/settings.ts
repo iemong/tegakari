@@ -1,6 +1,7 @@
 /** Persisted user settings stored in `chrome.storage.local`. */
 
 import { OUTPUT_PRESETS } from "./output-presets"
+import { isCustomPresetValue, type SelectedOutputPreset } from "./output-templates"
 import type { OutputPreset } from "./types"
 
 export const IFRAME_SELECTION_KEY = "tegakariIframeSelection"
@@ -12,6 +13,17 @@ function isOutputPreset(value: unknown): value is OutputPreset {
   return (
     typeof value === "string" &&
     (OUTPUT_PRESETS as readonly string[]).includes(value)
+  )
+}
+
+// Accepts the 5 built-in preset ids as well as a `custom:<templateId>`
+// reference. The referenced template itself is resolved lazily at copy time
+// (see `generateBatchPresetOutput`) — an id for a template that no longer
+// exists is still a *valid* stored value here, it just falls back to jsonl
+// once rendering is attempted.
+function isSelectedOutputPreset(value: unknown): value is SelectedOutputPreset {
+  return (
+    typeof value === "string" && (isOutputPreset(value) || isCustomPresetValue(value))
   )
 }
 
@@ -31,19 +43,20 @@ export function setIframeSelection(enabled: boolean): void {
 
 /**
  * Read the preferred output preset (defaults to "jsonl"). Accepts any of the
- * 5 preset ids; a value persisted by an older build ("jsonl"/"markdown") is
- * still valid and loads unchanged. Unknown/corrupt values fall back to jsonl.
+ * 5 built-in preset ids or a `custom:<templateId>` reference; a value
+ * persisted by an older build ("jsonl"/"markdown") is still valid and loads
+ * unchanged. Unknown/corrupt values fall back to jsonl.
  */
-export async function loadOutputPreset(): Promise<OutputPreset> {
+export async function loadOutputPreset(): Promise<SelectedOutputPreset> {
   return new Promise((resolve) => {
     chrome.storage.local.get(OUTPUT_FORMAT_KEY, (result) => {
       const value = result[OUTPUT_FORMAT_KEY]
-      resolve(isOutputPreset(value) ? value : "jsonl")
+      resolve(isSelectedOutputPreset(value) ? value : "jsonl")
     })
   })
 }
 
 /** Persist the preferred output preset. */
-export function setOutputPreset(preset: OutputPreset): void {
+export function setOutputPreset(preset: SelectedOutputPreset): void {
   chrome.storage.local.set({ [OUTPUT_FORMAT_KEY]: preset })
 }

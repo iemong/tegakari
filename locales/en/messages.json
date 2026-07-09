@@ -206,5 +206,101 @@
   "options_error_duplicate_pattern": {
     "message": "A rule with this pattern already exists",
     "description": "Validation error when adding or editing a rule with a pattern that already exists"
+  },
+  "options_templates_section_title": {
+    "message": "Output Templates",
+    "description": "Title of the Output Templates settings section"
+  },
+  "options_templates_section_desc": {
+    "message": "Define your own output format with {{...}} placeholders: the header renders once, the annotation template renders once per selected element. Templates appear in the Toolbar's format dropdown alongside the built-in presets.",
+    "description": "Description of the Output Templates section"
+  },
+  "options_templates_empty": {
+    "message": "No custom templates yet.",
+    "description": "Empty state message shown when there are no custom templates"
+  },
+  "options_templates_add_title": {
+    "message": "Add Template",
+    "description": "Heading of the add-output-template form"
+  },
+  "options_templates_add_submit": {
+    "message": "Create Template",
+    "description": "Submit button label for the add-output-template form"
+  },
+  "options_templates_field_name_placeholder": {
+    "message": "Name",
+    "description": "Placeholder for the template name input"
+  },
+  "options_templates_field_header_placeholder": {
+    "message": "Header (rendered once)",
+    "description": "Placeholder for the header template textarea"
+  },
+  "options_templates_field_annotation_placeholder": {
+    "message": "Annotation (rendered per element)",
+    "description": "Placeholder for the annotation template textarea"
+  },
+  "options_templates_label_header": {
+    "message": "Header",
+    "description": "Short label identifying the header template field/section"
+  },
+  "options_templates_label_annotation": {
+    "message": "Annotation",
+    "description": "Short label identifying the annotation template field/section"
+  },
+  "options_templates_error_name_required": {
+    "message": "Name is required",
+    "description": "Validation error when the template name field is empty"
+  },
+  "options_templates_error_limit_reached": {
+    "message": "You can save up to $1 templates",
+    "description": "Validation error when adding a template past the storage limit"
+  },
+  "options_templates_legend_title": {
+    "message": "Placeholders",
+    "description": "Heading above the placeholder reference legend"
+  },
+  "options_templates_import_button": {
+    "message": "Import Templates",
+    "description": "Button label to import templates from a JSON file"
+  },
+  "options_templates_export_button": {
+    "message": "Export Templates",
+    "description": "Button label to export templates to a JSON file"
+  },
+  "options_templates_import_title": {
+    "message": "Import templates from a JSON file",
+    "description": "Tooltip title for the import templates button"
+  },
+  "options_templates_export_title": {
+    "message": "Export templates to a JSON file",
+    "description": "Tooltip title for the export templates button"
+  },
+  "options_templates_export_success": {
+    "message": "Exported $1 template(s).",
+    "description": "Success message shown after exporting templates"
+  },
+  "options_templates_import_success": {
+    "message": "Imported $1 template(s).",
+    "description": "Success message shown after importing templates"
+  },
+  "options_templates_import_partial": {
+    "message": "Imported $1 template(s); skipped $2: $3",
+    "description": "Message shown when some templates were imported and others were skipped"
+  },
+  "options_templates_import_overflow_detail": {
+    "message": "$1 template(s) exceeded the $2-template limit and were not imported",
+    "description": "Detail appended to the partial-import message when valid entries were skipped for exceeding the storage cap"
+  },
+  "options_templates_import_failed_prefix": {
+    "message": "Import failed:",
+    "description": "Prefix shown before the error detail when a template import fails entirely"
+  },
+  "options_templates_import_no_valid": {
+    "message": "No valid templates found in the file",
+    "description": "Error detail shown when a template import file contains zero valid entries"
+  },
+  "options_templates_import_read_error": {
+    "message": "Could not read the file: $1",
+    "description": "Error message shown when the selected template file can't be read"
   }
 }

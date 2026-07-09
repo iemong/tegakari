@@ -82,5 +82,59 @@
   "options_error_invalid_regex": { "message": "正規表現が無効です: $1" },
   "options_error_duplicate_pattern": {
     "message": "このパターンのルールは既に存在します"
+  },
+  "options_templates_section_title": { "message": "出力テンプレート" },
+  "options_templates_section_desc": {
+    "message": "{{...}} プレースホルダーを使って独自の出力形式を定義できます。ヘッダーは1回だけ、アノテーションテンプレートは選択した要素ごとに描画されます。テンプレートはToolbarの形式ドロップダウンに組み込みプリセットと並んで表示されます。"
+  },
+  "options_templates_empty": {
+    "message": "カスタムテンプレートはまだありません。"
+  },
+  "options_templates_add_title": { "message": "テンプレートを追加" },
+  "options_templates_add_submit": { "message": "テンプレートを作成" },
+  "options_templates_field_name_placeholder": { "message": "名前" },
+  "options_templates_field_header_placeholder": {
+    "message": "ヘッダー（1回だけ描画）"
+  },
+  "options_templates_field_annotation_placeholder": {
+    "message": "アノテーション（要素ごとに描画）"
+  },
+  "options_templates_label_header": { "message": "ヘッダー" },
+  "options_templates_label_annotation": { "message": "アノテーション" },
+  "options_templates_error_name_required": { "message": "名前は必須です" },
+  "options_templates_error_limit_reached": {
+    "message": "テンプレートは最大$1件まで保存できます"
+  },
+  "options_templates_legend_title": { "message": "プレースホルダー" },
+  "options_templates_import_button": { "message": "テンプレートをインポート" },
+  "options_templates_export_button": {
+    "message": "テンプレートをエクスポート"
+  },
+  "options_templates_import_title": {
+    "message": "JSONファイルからテンプレートをインポート"
+  },
+  "options_templates_export_title": {
+    "message": "テンプレートをJSONファイルにエクスポート"
+  },
+  "options_templates_export_success": {
+    "message": "$1件のテンプレートをエクスポートしました。"
+  },
+  "options_templates_import_success": {
+    "message": "$1件のテンプレートをインポートしました。"
+  },
+  "options_templates_import_partial": {
+    "message": "$1件のテンプレートをインポートしました（$2件をスキップ: $3）"
+  },
+  "options_templates_import_overflow_detail": {
+    "message": "$1件は上限（$2件）を超えたためインポートされませんでした"
+  },
+  "options_templates_import_failed_prefix": {
+    "message": "インポートに失敗しました:"
+  },
+  "options_templates_import_no_valid": {
+    "message": "ファイル内に有効なテンプレートが見つかりませんでした"
+  },
+  "options_templates_import_read_error": {
+    "message": "ファイルを読み込めませんでした: $1"
   }
 }
