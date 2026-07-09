@@ -84,6 +84,12 @@ export interface Annotation {
   screenshot?: string
   /** Creation timestamp */
   createdAt: number
+  /**
+   * Selected quick-instruction chip ids, in selection order (e.g.
+   * `["spacing", "color"]`). Omitted or empty means "no tags" — both are
+   * treated identically by generators/UI.
+   */
+  tags?: string[]
 }
 
 /** Stored per URL */

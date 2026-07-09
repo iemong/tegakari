@@ -109,3 +109,42 @@ it("generateBatchXml: single pin copy (one annotation) still uses the same wrapp
   expect(result.match(/<annotation /g)?.length).toBe(1)
   expect(result.startsWith(CLAUDE_CODE_MARKER)).toBe(true)
 })
+
+it("generateBatchXml: renders <tags> right after </instruction> when tags are set", () => {
+  const result = generateBatchXml({
+    pageUrl: batchInput.pageUrl,
+    pageTitle: batchInput.pageTitle,
+    annotations: [{ ...batchInput.annotations[0], tags: ["spacing", "color"] }],
+  })
+  const lines = result.split("\n")
+  const instructionCloseIdx = lines.indexOf("</instruction>")
+
+  expect(lines[instructionCloseIdx + 1]).toBe("<tags>spacing, color</tags>")
+})
+
+it("generateBatchXml: still renders <tags> when the instruction is blank", () => {
+  const result = generateBatchXml({
+    pageUrl: batchInput.pageUrl,
+    pageTitle: batchInput.pageTitle,
+    annotations: [{ ...batchInput.annotations[1], tags: ["remove"] }],
+  })
+
+  expect(result).not.toContain("<instruction>")
+  expect(result).toContain("<tags>remove</tags>")
+})
+
+it("generateBatchXml: omits <tags> when tags is undefined or empty", () => {
+  const undefinedTags = generateBatchXml({
+    pageUrl: batchInput.pageUrl,
+    pageTitle: batchInput.pageTitle,
+    annotations: [{ ...batchInput.annotations[0], tags: undefined }],
+  })
+  const emptyTags = generateBatchXml({
+    pageUrl: batchInput.pageUrl,
+    pageTitle: batchInput.pageTitle,
+    annotations: [{ ...batchInput.annotations[0], tags: [] }],
+  })
+
+  expect(undefinedTags).not.toContain("<tags>")
+  expect(emptyTags).not.toContain("<tags>")
+})

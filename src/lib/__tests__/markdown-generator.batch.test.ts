@@ -201,3 +201,56 @@ it("generateBatchMarkdown: should handle batch frameworkInfo with only metaFrame
   expect(result).not.toContain("- **Framework**:")
   expect(result).toContain("- **Meta Framework**: Nuxt")
 })
+
+it("generateBatchMarkdown: renders a Tags line right after Instruction when tags are set", () => {
+  const input: BatchInput = {
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [
+      {
+        ...fullBatchInput.annotations[0],
+        tags: ["spacing", "color"],
+      },
+    ],
+  }
+
+  const result = generateBatchMarkdown(input)
+  const annotationSection = result.split("## Annotation #1")[1]
+  const instructionIdx = annotationSection.indexOf("**Instruction**")
+  const tagsIdx = annotationSection.indexOf("**Tags**")
+
+  expect(result).toContain("**Tags**: spacing, color")
+  expect(tagsIdx).toBeGreaterThan(instructionIdx)
+})
+
+it("generateBatchMarkdown: omits the Tags line when tags is undefined or empty", () => {
+  const undefinedTags = generateBatchMarkdown({
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [{ ...fullBatchInput.annotations[0], tags: undefined }],
+  })
+  const emptyTags = generateBatchMarkdown({
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [{ ...fullBatchInput.annotations[0], tags: [] }],
+  })
+
+  expect(undefinedTags).not.toContain("**Tags**")
+  expect(emptyTags).not.toContain("**Tags**")
+})
+
+it("generateBatchMarkdown: still renders the Tags line when the instruction is blank", () => {
+  const input: BatchInput = {
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [
+      { ...fullBatchInput.annotations[1], tags: ["remove"] },
+    ],
+  }
+
+  const result = generateBatchMarkdown(input)
+  const annotationSection = result.split("## Annotation #2")[1]
+
+  expect(annotationSection).not.toContain("**Instruction**")
+  expect(annotationSection).toContain("**Tags**: remove")
+})

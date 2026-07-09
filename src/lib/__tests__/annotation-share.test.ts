@@ -54,6 +54,44 @@ it("serialize → parse roundtrip preserves the store", () => {
   expect(parsed).toEqual(store)
 })
 
+it("serialize → parse roundtrip preserves tags", () => {
+  const store = createStore([
+    createAnnotation({ tags: ["spacing", "color"] }),
+  ])
+
+  const { store: parsed, errors } = parseAnnotationExport(
+    serializeAnnotationStore(store)
+  )
+
+  expect(errors).toEqual([])
+  expect(parsed!.annotations[0].tags).toEqual(["spacing", "color"])
+})
+
+it("parseAnnotationExport: leaves tags unset for legacy files without a tags field (backward compat)", () => {
+  const payload = JSON.parse(
+    serializeAnnotationStore(createStore([createAnnotation()]))
+  )
+  // Legacy export predates the tags field entirely.
+  expect(payload.store.annotations[0].tags).toBeUndefined()
+
+  const { store, errors } = parseAnnotationExport(JSON.stringify(payload))
+
+  expect(errors).toEqual([])
+  expect(store!.annotations[0].tags).toBeUndefined()
+})
+
+it("parseAnnotationExport: drops a malformed tags field instead of failing the whole annotation", () => {
+  const payload = JSON.parse(
+    serializeAnnotationStore(createStore([createAnnotation()]))
+  )
+  payload.store.annotations[0].tags = ["spacing", 42, null]
+
+  const { store, errors } = parseAnnotationExport(JSON.stringify(payload))
+
+  expect(errors).toEqual([])
+  expect(store!.annotations[0].tags).toBeUndefined()
+})
+
 it("parseAnnotationExport: rejects invalid JSON", () => {
   const { store, errors } = parseAnnotationExport("not json")
   expect(store).toBeNull()

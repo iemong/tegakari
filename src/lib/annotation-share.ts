@@ -134,7 +134,16 @@ function validateAnnotation(entry: unknown): Annotation | null {
     pageY: a.pageY,
     ...(typeof a.screenshot === "string" ? { screenshot: a.screenshot } : {}),
     createdAt: typeof a.createdAt === "number" ? a.createdAt : Date.now(),
+    ...validTags(a.tags),
   }
+}
+
+/** Keep `tags` only if every entry survived the JSON round-trip as a string. */
+function validTags(tags: unknown): { tags: string[] } | Record<string, never> {
+  if (!Array.isArray(tags) || !tags.every((t) => typeof t === "string")) {
+    return {}
+  }
+  return { tags }
 }
 
 /** Compare URLs ignoring the hash, mirroring the annotation-store key rule */

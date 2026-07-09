@@ -24,12 +24,13 @@ import {
   tagCodeStyle,
   thumbnailStyle,
 } from "./annotation-pin-styles"
+import InstructionChips from "./instruction-chips"
 
 interface Props {
   annotation: Annotation
   isActive: boolean
   onClick: () => void
-  onUpdateInstruction: (id: number, instruction: string) => void
+  onUpdateInstruction: (id: number, instruction: string, tags: string[]) => void
   onDelete: (id: number) => void
   onDeselect: () => void
 }
@@ -39,21 +40,32 @@ export default function AnnotationPin(props: Props) {
     props
   const { theme } = useTheme()
   const [draft, setDraft] = useState(annotation.instruction)
+  const [draftTags, setDraftTags] = useState<string[]>(annotation.tags ?? [])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    if (!isActive) setDraft(annotation.instruction)
-  }, [annotation.instruction, isActive])
+    if (!isActive) {
+      setDraft(annotation.instruction)
+      setDraftTags(annotation.tags ?? [])
+    }
+  }, [annotation.instruction, annotation.tags, isActive])
 
   useEffect(() => {
     if (isActive) {
       setDraft(annotation.instruction)
+      setDraftTags(annotation.tags ?? [])
       requestAnimationFrame(() => textareaRef.current?.focus())
     }
-  }, [isActive, annotation.instruction])
+  }, [isActive, annotation.instruction, annotation.tags])
+
+  const handleToggleTag = (id: string) => {
+    setDraftTags((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    )
+  }
 
   const handleSave = () => {
-    onUpdateInstruction(annotation.id, draft)
+    onUpdateInstruction(annotation.id, draft, draftTags)
     onDeselect()
   }
 
@@ -78,6 +90,8 @@ export default function AnnotationPin(props: Props) {
           theme={theme}
           draft={draft}
           setDraft={setDraft}
+          draftTags={draftTags}
+          onToggleTag={handleToggleTag}
           textareaRef={textareaRef}
           style={popoverStyle(pos)}
           onSave={handleSave}
@@ -116,6 +130,8 @@ interface PinPopoverProps {
   theme: Theme
   draft: string
   setDraft: (value: string) => void
+  draftTags: string[]
+  onToggleTag: (id: string) => void
   textareaRef: RefObject<HTMLTextAreaElement>
   style: CSSProperties
   onSave: () => void
@@ -128,6 +144,8 @@ function PinPopover({
   theme,
   draft,
   setDraft,
+  draftTags,
+  onToggleTag,
   textareaRef,
   style,
   onSave,
@@ -153,6 +171,7 @@ function PinPopover({
           style={thumbnailStyle(theme)}
         />
       )}
+      <InstructionChips theme={theme} selected={draftTags} onToggle={onToggleTag} />
       <textarea
         ref={textareaRef}
         value={draft}

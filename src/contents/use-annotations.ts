@@ -174,8 +174,14 @@ function useAnnotationActions({
   nextIdRef,
 }: ActionDeps) {
   const handleUpdateInstruction = useCallback(
-    (id: number, instruction: string) => {
-      mutate((prev) => prev.map((a) => (a.id === id ? { ...a, instruction } : a)))
+    (id: number, instruction: string, tags: string[] = []) => {
+      mutate((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? { ...a, instruction, tags: tags.length > 0 ? tags : undefined }
+            : a
+        )
+      )
     },
     [mutate]
   )

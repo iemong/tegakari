@@ -90,6 +90,9 @@ function buildAnnotationEntry(
   if (annotation.instruction.trim()) {
     entry.instruction = annotation.instruction.trim()
   }
+  if (annotation.tags && annotation.tags.length > 0) {
+    entry.tags = annotation.tags
+  }
   entry.element = buildElementEntry(annotation.elementInfo)
   if (annotation.componentInfo) {
     entry.component = buildComponentEntry(annotation.componentInfo)

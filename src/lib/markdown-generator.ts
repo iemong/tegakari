@@ -205,6 +205,9 @@ function annotationLines(
   if (annotation.instruction.trim()) {
     lines.push(`**Instruction**: ${annotation.instruction.trim()}`)
   }
+  if (annotation.tags && annotation.tags.length > 0) {
+    lines.push(`**Tags**: ${annotation.tags.join(", ")}`)
+  }
   lines.push(...elementLines(annotation.elementInfo, options?.element))
   if (annotation.componentInfo && options?.component !== "none") {
     lines.push(

@@ -30,6 +30,7 @@ tegakari は Web ページ上の要素にアノテーション（指示付きピ
 - `## Page Context`（1回のみ）: URL, Framework, Meta Framework（あれば）, Page Title, Viewport/Language/User Agent（バッチ時のみ）
 - `## Annotation #N`（アノテーションごとに繰り返し）:
   - `**Instruction**: ...`（自由入力。空なら行自体が省略される）
+  - `**Tags**: spacing, color`（クイック指示チップ。定型カテゴリ `spacing`/`color`/`text`/`size`/`align`/`remove` の組み合わせで、instruction の分類ヒント。無ければ行ごと省略）
   - `- **Selector**:` 祖先方向へ `>` で辿った一意な CSS セレクターパス
   - `- **Tag**:` `<tag>`
   - `- **Text**:` `innerText`（空なら省略）
@@ -48,7 +49,7 @@ tegakari は Web ページ上の要素にアノテーション（指示付きピ
 
 - `{"type":"prefix","content":"[repo=...]"}`（あれば先頭）
 - `{"type":"pageContext","url":...,"pageTitle":...,"framework":...,"metaFramework":...,"viewport":...,"language":...,"userAgent":...}`（1回のみ）
-- `{"type":"annotation","id":N,"instruction":...,"element":{"selector":...,"tag":...,"text":...,"attributes":{...},"styles":{...}},"component":{"framework":"react"|"vue","hierarchy":[...],"source":"file:line","props":{...},"state":{...}|"data":{...}}}`
+- `{"type":"annotation","id":N,"instruction":...,"tags":["spacing",...],"element":{"selector":...,"tag":...,"text":...,"attributes":{...},"styles":{...}},"component":{"framework":"react"|"vue","hierarchy":[...],"source":"file:line","props":{...},"state":{...}|"data":{...}}}`
 
 `instruction` / `element.text` / `element.styles` / `component` / `component.source` は値がある場合のみキーが存在する（`null` では来ず、キーごと省略される）。
 
@@ -61,6 +62,7 @@ claude-code プリセット選択時の出力。**不変の契約はマーカー
 <page-context>...</page-context>
 <annotation id="1">
 <instruction>...</instruction>     <!-- 無ければタグごと省略 -->
+<tags>spacing, color</tags>        <!-- クイック指示チップ。無ければ省略 -->
 <element>...</element>
 <component>...</component>          <!-- フレームワーク未検出なら省略 -->
 <style-diff>...</style-diff>        <!-- 差分が無ければ省略 -->

@@ -19,6 +19,7 @@ interface XmlAnnotationInput {
   instruction: string
   elementInfo: ElementInfo
   componentInfo: ComponentInfo | null
+  tags?: string[]
 }
 
 /** Single-annotation XML output (claude-code preset). */
@@ -82,6 +83,9 @@ function annotationXmlLines(annotation: XmlAnnotationInput): string[] {
       annotation.instruction.trim(),
       "</instruction>"
     )
+  }
+  if (annotation.tags && annotation.tags.length > 0) {
+    lines.push(`<tags>${annotation.tags.join(", ")}</tags>`)
   }
   lines.push(
     "<element>",
