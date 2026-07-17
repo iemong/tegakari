@@ -74,27 +74,3 @@ export function dividerStyle(theme: Theme): CSSProperties {
   return { width: 1, height: 20, backgroundColor: theme.border }
 }
 
-export function formatGroupStyle(theme: Theme): CSSProperties {
-  return {
-    display: "flex",
-    backgroundColor: theme.inputBg,
-    borderRadius: 50,
-    padding: 2,
-  }
-}
-
-export function formatButtonStyle(theme: Theme, selected: boolean): CSSProperties {
-  return {
-    padding: "4px 10px",
-    backgroundColor: selected ? theme.surface : "transparent",
-    color: selected ? theme.textPrimary : theme.textMuted,
-    border: "none",
-    borderRadius: 50,
-    fontWeight: 600,
-    fontSize: 10,
-    fontFamily: theme.fontFamily,
-    cursor: "pointer",
-    transition: "background-color 0.15s, color 0.15s",
-    boxShadow: selected ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-  }
-}

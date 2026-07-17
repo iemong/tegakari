@@ -93,6 +93,31 @@ it("generateMarkdown: should handle Vue component info with Data label", () => {
   expect(result).not.toContain("- **Meta Framework**:")
 })
 
+it("generateMarkdown: should handle Svelte component info without Props/State (v1 collector)", () => {
+  const input: MarkdownInput = {
+    instruction: "test",
+    pageUrl: "https://example.com",
+    pageTitle: "Svelte Page",
+    frameworkInfo: { framework: "Svelte 5", metaFramework: "SvelteKit" },
+    elementInfo: baseElementInfo,
+    componentInfo: {
+      framework: "svelte",
+      hierarchy: ["+page", "Widget"],
+      source: { file: "src/lib/Widget.svelte", line: 3 },
+    },
+  }
+
+  const result = generateMarkdown(input)
+
+  expect(result).toContain("- **Framework**: Svelte 5")
+  expect(result).toContain("- **Meta Framework**: SvelteKit")
+  expect(result).toContain("## Component Tree (Svelte)")
+  expect(result).toContain("- `+page` → `Widget`")
+  expect(result).toContain("- **Source**: `src/lib/Widget.svelte:3`")
+  expect(result).not.toContain("- **Props**:")
+  expect(result).not.toContain("- **State**:")
+})
+
 it("generateMarkdown: should handle frameworkInfo with only framework (no metaFramework)", () => {
   const input: MarkdownInput = {
     instruction: "test",

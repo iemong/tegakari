@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react"
 
+import { t } from "~lib/i18n"
 import type { Theme, ThemeMode } from "~lib/theme"
 
 interface Props {
@@ -15,13 +16,15 @@ export function AppearanceSection({ theme, mode, onToggle }: Props) {
     <div style={s.card}>
       <div style={s.row}>
         <div>
-          <div style={s.label}>Theme</div>
-          <div style={s.help}>Switch between light and dark mode.</div>
+          <div style={s.label}>{t("options_appearance_theme_label")}</div>
+          <div style={s.help}>{t("options_appearance_theme_help")}</div>
         </div>
         <ThemeToggle theme={theme} mode={mode} onToggle={onToggle} />
       </div>
       <div style={s.current}>
-        Currently {mode === "dark" ? "dark" : "light"} mode.
+        {mode === "dark"
+          ? t("options_appearance_current_dark")
+          : t("options_appearance_current_light")}
       </div>
     </div>
   )
@@ -29,7 +32,10 @@ export function AppearanceSection({ theme, mode, onToggle }: Props) {
 
 function ThemeToggle({ theme, mode, onToggle }: Props) {
   return (
-    <div role="radiogroup" aria-label="Theme" style={toggleGroupStyle(theme)}>
+    <div
+      role="radiogroup"
+      aria-label={t("options_appearance_theme_label")}
+      style={toggleGroupStyle(theme)}>
       {(["light", "dark"] as const).map((value) => (
         <ThemeOption
           key={value}
@@ -66,7 +72,9 @@ function ThemeOption({ value, selected, theme, onSelect }: ThemeOptionProps) {
       ) : (
         <MoonIcon color={iconColor} />
       )}
-      {value === "light" ? "Light" : "Dark"}
+      {value === "light"
+        ? t("options_appearance_theme_light")
+        : t("options_appearance_theme_dark")}
     </button>
   )
 }

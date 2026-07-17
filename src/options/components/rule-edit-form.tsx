@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react"
 
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 
 import type { RuleDraft } from "../hooks/use-prefix-rules-manager"
@@ -33,13 +34,13 @@ export function RuleEditForm({
         <input
           value={draft.pattern}
           onChange={(event) => onChange({ pattern: event.target.value })}
-          placeholder="Pattern"
+          placeholder={t("options_field_pattern_placeholder")}
           style={inputStyle({ flex: 1 })}
         />
         <input
           value={draft.prefix}
           onChange={(event) => onChange({ prefix: event.target.value })}
-          placeholder="Prefix"
+          placeholder={t("options_field_prefix_placeholder")}
           style={inputStyle({ flex: 1 })}
         />
       </div>
@@ -51,7 +52,7 @@ export function RuleEditForm({
             onChange={(event) => onChange({ isRegex: event.target.checked })}
             style={{ accentColor: theme.accent }}
           />
-          Regex
+          {t("options_field_regex_label")}
         </label>
         <div style={{ display: "flex", gap: 6 }}>
           <button
@@ -61,7 +62,7 @@ export function RuleEditForm({
               padding: "6px 12px",
               fontSize: 12,
             })}>
-            Cancel
+            {t("options_common_cancel")}
           </button>
           <button
             onClick={onSave}
@@ -69,7 +70,7 @@ export function RuleEditForm({
               padding: "6px 12px",
               fontSize: 12,
             })}>
-            Save
+            {t("options_common_save")}
           </button>
         </div>
       </div>

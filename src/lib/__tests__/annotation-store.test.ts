@@ -102,10 +102,14 @@ it("annotation-store: limits saved annotations to the newest 50", async () => {
 })
 
 it("annotation-store: updates and clears annotations", async () => {
-  await updateAnnotations(metadata.url, metadata, [annotation(1), annotation(2)])
+  await updateAnnotations(metadata.url, {
+    metadata,
+    annotations: [annotation(1), annotation(2)],
+  })
 
   const saved = storage[storageKey(metadata.url)] as AnnotationStore
   expect(saved.annotations.map((item) => item.id)).toEqual([1, 2])
+  expect(saved.relations).toEqual([])
 
   await clearAllAnnotations(metadata.url)
   expect(storage[storageKey(metadata.url)]).toBeUndefined()
@@ -134,6 +138,30 @@ it("annotation-store: uses the raw URL when URL parsing fails", async () => {
 
   expect(storage["tegakariAnnotations:not a url"]).toEqual(store)
   await expect(loadAnnotationStore("not a url")).resolves.toEqual(store)
+})
+
+it("annotation-store: loads legacy data saved before the tags field existed", async () => {
+  // Simulates a store persisted by an older version of the extension, where
+  // annotations never had a `tags` key at all.
+  const legacyAnnotation = annotation(1)
+  const key = storageKey(metadata.url)
+  storage[key] = { url: metadata.url, metadata, annotations: [legacyAnnotation] }
+
+  const loaded = await loadAnnotationStore(metadata.url)
+
+  expect(loaded?.annotations[0].tags).toBeUndefined()
+})
+
+it("annotation-store: loads legacy data saved before the styleDelta field existed", async () => {
+  // Simulates a store persisted by an older version of the extension, where
+  // annotations never had a `styleDelta` key at all.
+  const legacyAnnotation = annotation(1)
+  const key = storageKey(metadata.url)
+  storage[key] = { url: metadata.url, metadata, annotations: [legacyAnnotation] }
+
+  const loaded = await loadAnnotationStore(metadata.url)
+
+  expect(loaded?.annotations[0].styleDelta).toBeUndefined()
 })
 
 it("annotation-store: collects page metadata from browser globals", () => {

@@ -20,11 +20,20 @@ export function popoverStyle({ x, y }: Point): CSSProperties {
   }
 }
 
+export interface PinMarkerState {
+  isActive: boolean
+  /** This pin is the current "Link" source — see `use-link-mode.ts`. */
+  isLinkSource?: boolean
+  /** Link mode is active (for some pin, not necessarily this one). */
+  linkModeActive?: boolean
+}
+
 export function pinMarkerStyle(
   theme: Theme,
   { x, y }: Point,
-  isActive: boolean
+  state: PinMarkerState
 ): CSSProperties {
+  const { isActive, isLinkSource, linkModeActive } = state
   return {
     position: "fixed",
     top: y - 12,
@@ -32,22 +41,26 @@ export function pinMarkerStyle(
     width: 24,
     height: 24,
     borderRadius: "50%",
-    backgroundColor: isActive ? theme.pinActiveBg : theme.pinBg,
-    color: isActive ? theme.pinActiveText : theme.pinText,
+    backgroundColor: isActive || isLinkSource ? theme.pinActiveBg : theme.pinBg,
+    color: isActive || isLinkSource ? theme.pinActiveText : theme.pinText,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: 11,
     fontWeight: 700,
     fontFamily: theme.fontMono,
-    cursor: "pointer",
+    cursor: linkModeActive && !isLinkSource ? "crosshair" : "pointer",
     zIndex: 2147483646,
-    border: isActive
-      ? "2px solid rgba(255,255,255,0.25)"
-      : "2px solid rgba(0,0,0,0.15)",
-    boxShadow: isActive
+    border: isLinkSource
+      ? `2px dashed ${theme.accent}`
+      : isActive
+        ? "2px solid rgba(255,255,255,0.25)"
+        : "2px solid rgba(0,0,0,0.15)",
+    boxShadow: isLinkSource
       ? `0 0 0 4px ${theme.accentMuted}, 0 2px 12px rgba(0,0,0,0.3)`
-      : "0 2px 8px rgba(0,0,0,0.25)",
+      : isActive
+        ? `0 0 0 4px ${theme.accentMuted}, 0 2px 12px rgba(0,0,0,0.3)`
+        : "0 2px 8px rgba(0,0,0,0.25)",
     transition: "background-color 0.15s, box-shadow 0.2s, border-color 0.15s",
     pointerEvents: "auto",
     userSelect: "none",
@@ -124,6 +137,20 @@ export const iconButtonStyle: CSSProperties = {
   padding: 4,
   display: "flex",
   borderRadius: 4,
+}
+
+export function linkButtonStyle(theme: Theme): CSSProperties {
+  return {
+    background: "none",
+    border: `1px solid ${theme.border}`,
+    borderRadius: 4,
+    cursor: "pointer",
+    padding: "2px 6px",
+    fontSize: 10,
+    fontWeight: 600,
+    color: theme.textMuted,
+    fontFamily: theme.fontFamily,
+  }
 }
 
 export function thumbnailStyle(theme: Theme): CSSProperties {

@@ -3,7 +3,7 @@ import { detectFramework } from "../framework-detector"
 
 const win = globalThis.window as any
 
-beforeEach(() => {
+function resetGlobals() {
   delete win.__REACT_DEVTOOLS_GLOBAL_HOOK__
   delete win.__VUE__
   delete win.__vue__
@@ -12,20 +12,16 @@ beforeEach(() => {
   delete win.__next_router_prefetch_for
   delete win.__NUXT__
   delete win.__NUXT_DATA__
+  delete win.__svelte
+  for (const key of Object.keys(win)) {
+    if (key.startsWith("__sveltekit_")) delete win[key]
+  }
   document.body.innerHTML = ""
-})
+}
 
-afterEach(() => {
-  delete win.__REACT_DEVTOOLS_GLOBAL_HOOK__
-  delete win.__VUE__
-  delete win.__vue__
-  delete win.__NEXT_DATA__
-  delete win.__next_f
-  delete win.__next_router_prefetch_for
-  delete win.__NUXT__
-  delete win.__NUXT_DATA__
-  document.body.innerHTML = ""
-})
+beforeEach(resetGlobals)
+
+afterEach(resetGlobals)
 
 it("detectFramework: should return null when no framework detected", () => {
   expect(detectFramework()).toBeNull()
@@ -132,4 +128,76 @@ it("detectFramework: should return metaFramework only when base framework is not
     framework: null,
     metaFramework: "Next.js (Pages Router)",
   })
+})
+
+it("detectFramework: should detect Svelte via window.__svelte with version", () => {
+  win.__svelte = { v: new Set(["5"]) }
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte 5", metaFramework: null })
+})
+
+it("detectFramework: should detect Svelte 4 via window.__svelte version set", () => {
+  win.__svelte = { v: new Set(["4"]) }
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte 4", metaFramework: null })
+})
+
+it("detectFramework: should pick the newest version when multiple Svelte instances are loaded", () => {
+  win.__svelte = { v: new Set(["4", "5"]) }
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte 5", metaFramework: null })
+})
+
+it("detectFramework: should detect Svelte via window.__svelte without a usable version set", () => {
+  win.__svelte = {}
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte", metaFramework: null })
+})
+
+it("detectFramework: should detect Svelte via window.__svelte with an empty version set", () => {
+  win.__svelte = { v: new Set() }
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte", metaFramework: null })
+})
+
+it("detectFramework: should detect Svelte via scoped-style class name", () => {
+  document.body.innerHTML = '<div class="card svelte-1a2b3c"></div>'
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte", metaFramework: null })
+})
+
+it("detectFramework: should detect Svelte via __svelte_meta on an element (dev build)", () => {
+  document.body.innerHTML = "<div></div>"
+  ;(document.querySelector("div") as any).__svelte_meta = {
+    loc: { file: "src/App.svelte", line: 1 },
+  }
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte", metaFramework: null })
+})
+
+it("detectFramework: should detect SvelteKit via #svelte-announcer", () => {
+  win.__svelte = { v: new Set(["5"]) }
+  document.body.innerHTML = '<div id="svelte-announcer"></div>'
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte 5", metaFramework: "SvelteKit" })
+})
+
+it("detectFramework: should detect SvelteKit via data-sveltekit-* attributes", () => {
+  win.__svelte = { v: new Set(["5"]) }
+  document.body.innerHTML = '<a href="/" data-sveltekit-preload-data>Home</a>'
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte 5", metaFramework: "SvelteKit" })
+})
+
+it("detectFramework: should detect SvelteKit via __sveltekit_ global", () => {
+  win.__svelte = { v: new Set(["5"]) }
+  win.__sveltekit_1a2b3c = {}
+  const result = detectFramework()
+  expect(result).toEqual({ framework: "Svelte 5", metaFramework: "SvelteKit" })
+})
+
+it("detectFramework: should return metaFramework SvelteKit only when Svelte itself is not detected", () => {
+  document.body.innerHTML = '<div id="svelte-announcer"></div>'
+  const result = detectFramework()
+  expect(result).toEqual({ framework: null, metaFramework: "SvelteKit" })
 })

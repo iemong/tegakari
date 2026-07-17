@@ -1,7 +1,10 @@
+import { t } from "~lib/i18n"
+
 import { AppearanceSection } from "./options/components/appearance-section"
 import { BehaviorSection } from "./options/components/behavior-section"
 import { OptionsFooter } from "./options/components/options-footer"
 import { OptionsHeader } from "./options/components/options-header"
+import { OutputTemplatesSection } from "./options/components/output-templates-section"
 import { PrefixRulesSection } from "./options/components/prefix-rules-section"
 import { SettingsSection } from "./options/components/settings-section"
 import { useIframeSelection } from "./options/hooks/use-iframe-selection"
@@ -23,11 +26,11 @@ export default function OptionsPage() {
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
         <OptionsHeader theme={theme} />
 
-        <SettingsSection title="Appearance" theme={theme}>
+        <SettingsSection title={t("options_section_appearance")} theme={theme}>
           <AppearanceSection theme={theme} mode={mode} onToggle={toggleMode} />
         </SettingsSection>
 
-        <SettingsSection title="Behavior" theme={theme}>
+        <SettingsSection title={t("options_section_behavior")} theme={theme}>
           <BehaviorSection
             theme={theme}
             iframeEnabled={iframeEnabled}
@@ -36,6 +39,8 @@ export default function OptionsPage() {
         </SettingsSection>
 
         <PrefixRulesSection theme={theme} />
+
+        <OutputTemplatesSection theme={theme} />
 
         <OptionsFooter theme={theme} />
       </div>

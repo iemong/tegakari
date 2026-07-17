@@ -54,6 +54,93 @@ it("serialize → parse roundtrip preserves the store", () => {
   expect(parsed).toEqual(store)
 })
 
+it("serialize → parse roundtrip preserves tags", () => {
+  const store = createStore([
+    createAnnotation({ tags: ["spacing", "color"] }),
+  ])
+
+  const { store: parsed, errors } = parseAnnotationExport(
+    serializeAnnotationStore(store)
+  )
+
+  expect(errors).toEqual([])
+  expect(parsed!.annotations[0].tags).toEqual(["spacing", "color"])
+})
+
+it("serialize → parse roundtrip preserves styleDelta", () => {
+  const store = createStore([
+    createAnnotation({
+      styleDelta: [
+        { property: "margin", before: "16px", after: "8px" },
+        { property: "color", before: "rgb(51, 51, 51)", after: "#2563eb" },
+      ],
+    }),
+  ])
+
+  const { store: parsed, errors } = parseAnnotationExport(
+    serializeAnnotationStore(store)
+  )
+
+  expect(errors).toEqual([])
+  expect(parsed!.annotations[0].styleDelta).toEqual([
+    { property: "margin", before: "16px", after: "8px" },
+    { property: "color", before: "rgb(51, 51, 51)", after: "#2563eb" },
+  ])
+})
+
+it("parseAnnotationExport: leaves styleDelta unset for legacy files without a styleDelta field (backward compat)", () => {
+  const payload = JSON.parse(
+    serializeAnnotationStore(createStore([createAnnotation()]))
+  )
+  // Legacy export predates the styleDelta field entirely.
+  expect(payload.store.annotations[0].styleDelta).toBeUndefined()
+
+  const { store, errors } = parseAnnotationExport(JSON.stringify(payload))
+
+  expect(errors).toEqual([])
+  expect(store!.annotations[0].styleDelta).toBeUndefined()
+})
+
+it("parseAnnotationExport: drops a malformed styleDelta field instead of failing the whole annotation", () => {
+  const payload = JSON.parse(
+    serializeAnnotationStore(createStore([createAnnotation()]))
+  )
+  payload.store.annotations[0].styleDelta = [
+    { property: "margin", before: "16px", after: "8px" },
+    { property: "color", before: 42, after: "#2563eb" },
+  ]
+
+  const { store, errors } = parseAnnotationExport(JSON.stringify(payload))
+
+  expect(errors).toEqual([])
+  expect(store!.annotations[0].styleDelta).toBeUndefined()
+})
+
+it("parseAnnotationExport: leaves tags unset for legacy files without a tags field (backward compat)", () => {
+  const payload = JSON.parse(
+    serializeAnnotationStore(createStore([createAnnotation()]))
+  )
+  // Legacy export predates the tags field entirely.
+  expect(payload.store.annotations[0].tags).toBeUndefined()
+
+  const { store, errors } = parseAnnotationExport(JSON.stringify(payload))
+
+  expect(errors).toEqual([])
+  expect(store!.annotations[0].tags).toBeUndefined()
+})
+
+it("parseAnnotationExport: drops a malformed tags field instead of failing the whole annotation", () => {
+  const payload = JSON.parse(
+    serializeAnnotationStore(createStore([createAnnotation()]))
+  )
+  payload.store.annotations[0].tags = ["spacing", 42, null]
+
+  const { store, errors } = parseAnnotationExport(JSON.stringify(payload))
+
+  expect(errors).toEqual([])
+  expect(store!.annotations[0].tags).toBeUndefined()
+})
+
 it("parseAnnotationExport: rejects invalid JSON", () => {
   const { store, errors } = parseAnnotationExport("not json")
   expect(store).toBeNull()

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react"
 
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 
 interface Props {
@@ -19,11 +20,8 @@ export function BehaviorSection({
     <div style={s.card}>
       <div style={s.row}>
         <div>
-          <div style={s.label}>Select inside iframes</div>
-          <div style={s.help}>
-            Also pick elements inside same-origin iframes (e.g. a Google Apps
-            Script web app). Cross-origin iframes can't be accessed.
-          </div>
+          <div style={s.label}>{t("options_behavior_iframe_label")}</div>
+          <div style={s.help}>{t("options_behavior_iframe_help")}</div>
         </div>
         <Switch theme={theme} on={iframeEnabled} onToggle={onToggleIframe} />
       </div>
@@ -43,7 +41,7 @@ function Switch({ theme, on, onToggle }: SwitchProps) {
       type="button"
       role="switch"
       aria-checked={on}
-      aria-label="Select inside iframes"
+      aria-label={t("options_behavior_iframe_label")}
       onClick={onToggle}
       style={switchTrackStyle(theme, on)}>
       <span style={switchThumbStyle(on)} />

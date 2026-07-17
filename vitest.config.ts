@@ -34,8 +34,16 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     // Vitest picks up *.spec.ts by default; explicitly exclude the Playwright
-    // suite under tests/e2e so `pnpm test` only runs unit tests.
-    exclude: ["**/node_modules/**", "**/dist/**", "tests/e2e/**"],
+    // suite under tests/e2e so `pnpm test` only runs unit tests, and ignore
+    // agent-session dirs (.claude worktrees/scratchpads, .codex-agent-view
+    // repo mirrors) that would otherwise be collected.
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "tests/e2e/**",
+      "**/.claude/**",
+      "**/.codex-agent-view/**",
+    ],
     // Load jest-dom matchers for every spec.
     setupFiles: ["./vitest.setup.ts"],
     coverage: {

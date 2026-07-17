@@ -1,3 +1,4 @@
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 
 const REPO_URL = "https://github.com/iemong/tegakari"
@@ -14,10 +15,7 @@ export function OptionsFooter({ theme }: { theme: Theme }) {
         lineHeight: 1.7,
       }}
     >
-      <p style={{ margin: "0 0 12px" }}>
-        tegakari is free and open source. If you find it useful, please consider
-        supporting continued development.
-      </p>
+      <p style={{ margin: "0 0 12px" }}>{t("options_footer_message")}</p>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <a
           href={SPONSOR_URL}
@@ -36,7 +34,7 @@ export function OptionsFooter({ theme }: { theme: Theme }) {
             textDecoration: "none",
           }}
         >
-          ♥ Sponsor on GitHub
+          {t("options_footer_sponsor")}
         </a>
         <a
           href={REPO_URL}
@@ -54,7 +52,7 @@ export function OptionsFooter({ theme }: { theme: Theme }) {
             textDecoration: "none",
           }}
         >
-          ★ GitHub Repository
+          {t("options_footer_repo")}
         </a>
       </div>
     </div>

@@ -9,23 +9,26 @@ import {
 import { CopyImageButton } from "~components/copy-image-button"
 import InboxPanel from "~components/InboxPanel"
 import { CloseIcon, CopyIcon, InboxIcon } from "~components/icons"
+import { PresetDropdown } from "~components/preset-dropdown"
 import { useClipboard } from "~hooks/use-clipboard"
-import { generateBatchJsonl } from "~lib/jsonl-generator"
-import { generateBatchMarkdown } from "~lib/markdown-generator"
+import { generateBatchPresetOutput } from "~lib/output-presets"
+import {
+  loadOutputTemplates,
+  type OutputTemplate,
+  type SelectedOutputPreset,
+} from "~lib/output-templates"
 import { findMatchingPrefix, loadPrefixRules } from "~lib/prefix-rules"
 import {
-  loadOutputFormat,
-  setOutputFormat as persistOutputFormat,
+  loadOutputPreset,
+  setOutputPreset as persistOutputPreset,
 } from "~lib/settings"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation, OutputFormat, PageMetadata } from "~lib/types"
+import type { Annotation, PageMetadata, Relation } from "~lib/types"
 
 import {
   btnBase,
   copyButtonStyle,
   dividerStyle,
-  formatButtonStyle,
-  formatGroupStyle,
   inboxBadgeStyle,
   inboxButtonStyle,
   toolbarBarStyle,
@@ -35,11 +38,13 @@ interface Props {
   annotations: Annotation[]
   activeAnnotationId: number | null
   metadata: PageMetadata | null
+  relations: Relation[]
   onSelectAnnotation: (id: number) => void
   onDeleteAnnotation: (id: number) => void
+  onDeleteRelation: (id: number) => void
   onClearAll: () => void
   onClose: () => void
-  onImportAnnotations: (imported: Annotation[]) => void
+  onImportAnnotations: (imported: Annotation[], relations?: Relation[]) => void
 }
 
 export default function Toolbar(props: Props) {
@@ -57,8 +62,9 @@ export default function Toolbar(props: Props) {
         count={t.annotations.length}
         copied={t.copied}
         onCopy={t.handleCopy}
-        outputFormat={t.outputFormat}
-        onFormatChange={t.setOutputFormat}
+        outputPreset={t.outputPreset}
+        customTemplates={t.customTemplates}
+        onPresetChange={t.setOutputPreset}
         onClose={props.onClose}
       />
 
@@ -67,6 +73,7 @@ export default function Toolbar(props: Props) {
           annotations={props.annotations}
           activeAnnotationId={props.activeAnnotationId}
           metadata={props.metadata}
+          relations={props.relations}
           prefix={t.prefix}
           matchedPrefix={t.matchedPrefix}
           copiedItemId={t.copiedItemId}
@@ -74,6 +81,7 @@ export default function Toolbar(props: Props) {
           onSelectAnnotation={props.onSelectAnnotation}
           onCopyItem={t.handleCopyItem}
           onDeleteAnnotation={props.onDeleteAnnotation}
+          onDeleteRelation={props.onDeleteRelation}
           onClearAll={props.onClearAll}
           onImportAnnotations={props.onImportAnnotations}
         />
@@ -85,36 +93,39 @@ export default function Toolbar(props: Props) {
 function useToolbar(props: Props) {
   const { copy } = useClipboard()
   const [inboxOpen, setInboxOpen] = useState(false)
-  const [outputFormat, setOutputFormat] = useStoredOutputFormat()
+  const [outputPreset, setOutputPreset] = useStoredOutputPreset()
+  const customTemplates = useCustomTemplates()
   const toolbarRef = useRef<HTMLDivElement>(null)
-  const { annotations, metadata } = props
+  const { annotations, metadata, relations } = props
 
   const { prefix, setPrefix, matchedPrefix } = usePrefixSync()
   useTopLayer(toolbarRef)
 
+  // Relations are a batch-only concept (see docs/output-spec.md#relations) —
+  // callers only pass them for the "Copy All" path, never single-item copy.
   const formatOutput = useCallback(
-    (items: Annotation[]) => {
+    (items: Annotation[], includeRelations: Relation[] = []) => {
       const input = {
         pageUrl: location.href,
         pageTitle: document.title,
         annotations: items,
         prefix: prefix.trim() || undefined,
         metadata: metadata ?? undefined,
+        ...(includeRelations.length > 0 ? { relations: includeRelations } : {}),
       }
-      return outputFormat === "jsonl"
-        ? generateBatchJsonl(input)
-        : generateBatchMarkdown(input)
+      return generateBatchPresetOutput(outputPreset, input, customTemplates)
     },
-    [outputFormat, prefix, metadata]
+    [outputPreset, prefix, metadata, customTemplates]
   )
 
-  const actions = useToolbarActions(copy, formatOutput, annotations)
+  const actions = useToolbarActions({ copy, formatOutput, annotations, relations })
 
   return {
     inboxOpen,
     setInboxOpen,
-    outputFormat,
-    setOutputFormat,
+    outputPreset,
+    setOutputPreset,
+    customTemplates,
     toolbarRef,
     annotations,
     prefix,
@@ -124,24 +135,38 @@ function useToolbar(props: Props) {
   }
 }
 
-// Output format persists across sessions so users who prefer Markdown don't
-// have to re-toggle from the JSONL default every time.
-function useStoredOutputFormat(): [
-  OutputFormat,
-  (format: OutputFormat) => void,
-] {
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>("jsonl")
+// Custom templates are loaded once on mount (not re-read on every copy) —
+// the Options page is the only place that edits them, and the extra
+// storage round trip per click isn't worth the freshness it would buy.
+function useCustomTemplates(): OutputTemplate[] {
+  const [templates, setTemplates] = useState<OutputTemplate[]>([])
 
   useEffect(() => {
-    loadOutputFormat().then(setOutputFormat)
+    loadOutputTemplates().then(setTemplates)
   }, [])
 
-  const update = useCallback((format: OutputFormat) => {
-    setOutputFormat(format)
-    persistOutputFormat(format)
+  return templates
+}
+
+// Output preset persists across sessions so users who prefer e.g. Cursor's
+// trimmed Markdown don't have to re-select it from the JSONL default every
+// time.
+function useStoredOutputPreset(): [
+  SelectedOutputPreset,
+  (preset: SelectedOutputPreset) => void,
+] {
+  const [outputPreset, setOutputPreset] = useState<SelectedOutputPreset>("jsonl")
+
+  useEffect(() => {
+    loadOutputPreset().then(setOutputPreset)
   }, [])
 
-  return [outputFormat, update]
+  const update = useCallback((preset: SelectedOutputPreset) => {
+    setOutputPreset(preset)
+    persistOutputPreset(preset)
+  }, [])
+
+  return [outputPreset, update]
 }
 
 // Load prefix rules on mount + whenever storage changes.
@@ -165,20 +190,28 @@ function usePrefixSync() {
   return { prefix, setPrefix, matchedPrefix }
 }
 
-function useToolbarActions(
-  copy: (text: string) => Promise<boolean>,
-  formatOutput: (items: Annotation[]) => string,
+interface ToolbarActionsArgs {
+  copy: (text: string) => Promise<boolean>
+  formatOutput: (items: Annotation[], relations?: Relation[]) => string
   annotations: Annotation[]
-) {
+  relations: Relation[]
+}
+
+function useToolbarActions({
+  copy,
+  formatOutput,
+  annotations,
+  relations,
+}: ToolbarActionsArgs) {
   const [copied, setCopied] = useState(false)
   const [copiedItemId, setCopiedItemId] = useState<number | null>(null)
 
   const handleCopy = useCallback(async () => {
     if (annotations.length === 0) return
-    await copy(formatOutput(annotations))
+    await copy(formatOutput(annotations, relations))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }, [annotations, formatOutput, copy])
+  }, [annotations, relations, formatOutput, copy])
 
   const handleCopyItem = useCallback(
     async (annotation: Annotation) => {
@@ -201,8 +234,9 @@ interface ToolbarBarProps {
   count: number
   copied: boolean
   onCopy: () => void
-  outputFormat: OutputFormat
-  onFormatChange: (format: OutputFormat) => void
+  outputPreset: SelectedOutputPreset
+  customTemplates: OutputTemplate[]
+  onPresetChange: (preset: SelectedOutputPreset) => void
   onClose: () => void
 }
 
@@ -215,8 +249,9 @@ function ToolbarBar({
   count,
   copied,
   onCopy,
-  outputFormat,
-  onFormatChange,
+  outputPreset,
+  customTemplates,
+  onPresetChange,
   onClose,
 }: ToolbarBarProps) {
   return (
@@ -239,10 +274,11 @@ function ToolbarBar({
       </button>
       <CopyImageButton annotations={annotations} />
       <div style={dividerStyle(theme)} />
-      <FormatToggle
+      <PresetDropdown
         theme={theme}
-        outputFormat={outputFormat}
-        onFormatChange={onFormatChange}
+        preset={outputPreset}
+        customTemplates={customTemplates}
+        onPresetChange={onPresetChange}
       />
       <div style={dividerStyle(theme)} />
       <button onClick={onClose} style={btnBase} title="Close tegakari">
@@ -265,27 +301,6 @@ function InboxButton({ theme, open, count, onToggle }: InboxButtonProps) {
       <InboxIcon color={open ? theme.accent : theme.textMuted} />
       {count > 0 && <span style={inboxBadgeStyle(theme)}>{count}</span>}
     </button>
-  )
-}
-
-interface FormatToggleProps {
-  theme: Theme
-  outputFormat: OutputFormat
-  onFormatChange: (format: OutputFormat) => void
-}
-
-function FormatToggle({ theme, outputFormat, onFormatChange }: FormatToggleProps) {
-  return (
-    <div style={formatGroupStyle(theme)}>
-      {(["jsonl", "markdown"] as const).map((fmt) => (
-        <button
-          key={fmt}
-          onClick={() => onFormatChange(fmt)}
-          style={formatButtonStyle(theme, outputFormat === fmt)}>
-          {fmt === "jsonl" ? "JSONL" : "MD"}
-        </button>
-      ))}
-    </div>
   )
 }
 

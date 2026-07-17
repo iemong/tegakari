@@ -77,6 +77,20 @@ export function generateBatchJsonl(input: BatchInput): string {
     lines.push(JSON.stringify(buildAnnotationEntry(annotation)))
   }
 
+  // Relations (batch-only concept; omitted entirely when there are none —
+  // see docs/output-spec.md#relations)
+  for (const relation of input.relations ?? []) {
+    lines.push(
+      JSON.stringify({
+        type: "relation",
+        id: relation.id,
+        from: relation.fromId,
+        to: relation.toId,
+        instruction: relation.instruction,
+      })
+    )
+  }
+
   return lines.join("\n")
 }
 
@@ -89,6 +103,12 @@ function buildAnnotationEntry(
   }
   if (annotation.instruction.trim()) {
     entry.instruction = annotation.instruction.trim()
+  }
+  if (annotation.tags && annotation.tags.length > 0) {
+    entry.tags = annotation.tags
+  }
+  if (annotation.styleDelta && annotation.styleDelta.length > 0) {
+    entry.styleDelta = annotation.styleDelta
   }
   entry.element = buildElementEntry(annotation.elementInfo)
   if (annotation.componentInfo) {
@@ -106,6 +126,12 @@ function buildElementEntry(el: ElementInfo): Record<string, unknown> {
   if (Object.keys(el.attributes).length > 0) element.attributes = el.attributes
   if (el.styles && Object.keys(el.styles).length > 0) {
     element.styles = el.styles
+  }
+  if (el.cssRules && el.cssRules.length > 0) {
+    element.cssRules = el.cssRules
+  }
+  if (el.customProperties && Object.keys(el.customProperties).length > 0) {
+    element.customProperties = el.customProperties
   }
   return element
 }

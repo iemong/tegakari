@@ -1,22 +1,17 @@
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  type ReactNode,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import type { CSSProperties, KeyboardEvent, ReactNode, RefObject } from "react"
 
+import { TrashIcon } from "~components/icons"
 import { type Theme, useTheme } from "~lib/theme"
-import type { Annotation } from "~lib/types"
+import type { Annotation, StyleDelta } from "~lib/types"
 
 import {
   headerActionsStyle,
   headerTextStyle,
   iconButtonStyle,
   idBadgeStyle,
+  linkButtonStyle,
   pinMarkerStyle,
+  type PinMarkerState,
   popoverContainerStyle,
   popoverStyle,
   popoverTextareaStyle,
@@ -24,36 +19,50 @@ import {
   tagCodeStyle,
   thumbnailStyle,
 } from "./annotation-pin-styles"
+import InstructionChips from "./instruction-chips"
+import StyleTweakPanel from "./style-tweak-panel"
+import { useAnnotationDraft } from "./use-annotation-draft"
+
+interface UpdatePayload {
+  instruction: string
+  tags?: string[]
+  styleDelta?: StyleDelta[]
+}
 
 interface Props {
   annotation: Annotation
   isActive: boolean
   onClick: () => void
-  onUpdateInstruction: (id: number, instruction: string) => void
+  onUpdateInstruction: (id: number, payload: UpdatePayload) => void
   onDelete: (id: number) => void
   onDeselect: () => void
+  /** This pin is the current "Link" source (see `use-link-mode.ts`). */
+  isLinkSource?: boolean
+  /** Link mode is active (for some pin, not necessarily this one). */
+  linkModeActive?: boolean
+  onStartLink: () => void
 }
 
 export default function AnnotationPin(props: Props) {
   const { annotation, isActive, onClick, onUpdateInstruction, onDeselect } =
     props
   const { theme } = useTheme()
-  const [draft, setDraft] = useState(annotation.instruction)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    if (!isActive) setDraft(annotation.instruction)
-  }, [annotation.instruction, isActive])
-
-  useEffect(() => {
-    if (isActive) {
-      setDraft(annotation.instruction)
-      requestAnimationFrame(() => textareaRef.current?.focus())
-    }
-  }, [isActive, annotation.instruction])
+  const {
+    draft,
+    setDraft,
+    draftTags,
+    onToggleTag: handleToggleTag,
+    draftStyleDelta,
+    setDraftStyleDelta,
+    textareaRef,
+  } = useAnnotationDraft(annotation, isActive)
 
   const handleSave = () => {
-    onUpdateInstruction(annotation.id, draft)
+    onUpdateInstruction(annotation.id, {
+      instruction: draft,
+      tags: draftTags,
+      styleDelta: draftStyleDelta,
+    })
     onDeselect()
   }
 
@@ -68,8 +77,12 @@ export default function AnnotationPin(props: Props) {
       <PinMarker
         pos={pos}
         id={annotation.id}
-        isActive={isActive}
         theme={theme}
+        state={{
+          isActive,
+          isLinkSource: props.isLinkSource,
+          linkModeActive: props.linkModeActive,
+        }}
         onActivate={() => (isActive ? handleSave() : onClick())}
       />
       {isActive && (
@@ -78,11 +91,15 @@ export default function AnnotationPin(props: Props) {
           theme={theme}
           draft={draft}
           setDraft={setDraft}
+          draftTags={draftTags}
+          onToggleTag={handleToggleTag}
+          onStyleDeltaChange={setDraftStyleDelta}
           textareaRef={textareaRef}
           style={popoverStyle(pos)}
           onSave={handleSave}
           onDelete={props.onDelete}
           onDeselect={onDeselect}
+          onStartLink={props.onStartLink}
         />
       )}
     </>
@@ -92,12 +109,12 @@ export default function AnnotationPin(props: Props) {
 interface PinMarkerProps {
   pos: { x: number; y: number }
   id: number
-  isActive: boolean
   theme: Theme
+  state: PinMarkerState
   onActivate: () => void
 }
 
-function PinMarker({ pos, id, isActive, theme, onActivate }: PinMarkerProps) {
+function PinMarker({ pos, id, theme, state, onActivate }: PinMarkerProps) {
   return (
     <div
       data-testid={`tegakari-pin-${id}`}
@@ -105,7 +122,7 @@ function PinMarker({ pos, id, isActive, theme, onActivate }: PinMarkerProps) {
         e.stopPropagation()
         onActivate()
       }}
-      style={pinMarkerStyle(theme, pos, isActive)}>
+      style={pinMarkerStyle(theme, pos, state)}>
       {id}
     </div>
   )
@@ -116,11 +133,15 @@ interface PinPopoverProps {
   theme: Theme
   draft: string
   setDraft: (value: string) => void
+  draftTags: string[]
+  onToggleTag: (id: string) => void
+  onStyleDeltaChange: (styleDelta: StyleDelta[] | undefined) => void
   textareaRef: RefObject<HTMLTextAreaElement>
   style: CSSProperties
   onSave: () => void
   onDelete: (id: number) => void
   onDeselect: () => void
+  onStartLink: () => void
 }
 
 function PinPopover({
@@ -128,11 +149,15 @@ function PinPopover({
   theme,
   draft,
   setDraft,
+  draftTags,
+  onToggleTag,
+  onStyleDeltaChange,
   textareaRef,
   style,
   onSave,
   onDelete,
   onDeselect,
+  onStartLink,
 }: PinPopoverProps) {
   return (
     <div
@@ -145,6 +170,10 @@ function PinPopover({
           onDelete(annotation.id)
           onDeselect()
         }}
+        onStartLink={() => {
+          onStartLink()
+          onDeselect()
+        }}
       />
       {annotation.screenshot && (
         <img
@@ -153,6 +182,7 @@ function PinPopover({
           style={thumbnailStyle(theme)}
         />
       )}
+      <InstructionChips theme={theme} selected={draftTags} onToggle={onToggleTag} />
       <textarea
         ref={textareaRef}
         value={draft}
@@ -168,6 +198,12 @@ function PinPopover({
           e.currentTarget.style.borderColor = theme.border
         }}
       />
+      <StyleTweakPanel
+        theme={theme}
+        annotation={annotation}
+        isActive={true}
+        onChange={onStyleDeltaChange}
+      />
       <button onClick={onSave} style={saveButtonStyle(theme)}>
         Save
       </button>
@@ -179,12 +215,14 @@ interface PinPopoverHeaderProps {
   annotation: Annotation
   theme: Theme
   onDelete: () => void
+  onStartLink: () => void
 }
 
 function PinPopoverHeader({
   annotation,
   theme,
   onDelete,
+  onStartLink,
 }: PinPopoverHeaderProps) {
   const { tag, text } = annotation.elementInfo
   return (
@@ -198,6 +236,12 @@ function PinPopoverHeader({
         </span>
       )}
       <div style={headerActionsStyle}>
+        <button
+          onClick={onStartLink}
+          title="Link to another pin"
+          style={linkButtonStyle(theme)}>
+          Link
+        </button>
         <IconButton title="Delete" onClick={onDelete}>
           <TrashIcon color={theme.danger} />
         </IconButton>
@@ -233,21 +277,4 @@ function handlePopoverKey(
     e.stopPropagation()
     onSave()
   }
-}
-
-function TrashIcon({ color }: { color: string }) {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  )
 }

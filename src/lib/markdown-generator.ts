@@ -2,12 +2,19 @@ import { formatSourceLocation } from "./source-location"
 import type {
   BatchInput,
   ComponentInfo,
+  CssRuleInfo,
   ElementInfo,
   FrameworkInfo,
   MarkdownInput,
+  MarkdownSectionOptions,
+  Relation,
+  StyleDelta,
 } from "./types"
 
-export function generateMarkdown(input: MarkdownInput): string {
+export function generateMarkdown(
+  input: MarkdownInput,
+  options?: MarkdownSectionOptions
+): string {
   const sections: string[] = []
 
   // 1. User Instruction
@@ -16,55 +23,89 @@ export function generateMarkdown(input: MarkdownInput): string {
   }
 
   // 2. Page Context
-  const contextLines = [
-    `- **URL**: ${input.pageUrl}`,
-    ...frameworkContextLines(input.frameworkInfo),
-    `- **Page Title**: ${input.pageTitle}`,
-  ]
+  const contextLines = pageContextLines(
+    { pageUrl: input.pageUrl, pageTitle: input.pageTitle, framework: input.frameworkInfo },
+    options?.pageContext
+  )
   sections.push(`## Page Context\n${contextLines.join("\n")}`)
 
   // 3. Selected Element
   sections.push(
-    `## Selected Element\n${elementLines(input.elementInfo).join("\n")}`
+    `## Selected Element\n${elementLines(input.elementInfo, options?.element).join("\n")}`
   )
 
   // 4. Component Tree (conditional)
-  if (input.componentInfo) {
+  if (input.componentInfo && options?.component !== "none") {
     const comp = input.componentInfo
-    const label =
-      comp.framework === "react"
-        ? "Component Tree (React)"
-        : "Component Tree (Vue)"
-    sections.push(`## ${label}\n${componentLines(comp, "- ").join("\n")}`)
+    const label = `Component Tree (${componentFrameworkLabel(comp.framework)})`
+    sections.push(
+      `## ${label}\n${componentLines(comp, "- ", options?.component).join("\n")}`
+    )
   }
 
   return sections.join("\n\n")
 }
 
-export function generateBatchMarkdown(input: BatchInput): string {
+export function generateBatchMarkdown(
+  input: BatchInput,
+  options?: MarkdownSectionOptions
+): string {
   const sections: string[] = []
 
   // Page Context (once)
   const firstFramework = input.annotations.find(
     (a) => a.frameworkInfo
   )?.frameworkInfo
-  const contextLines = [
-    `- **URL**: ${input.pageUrl}`,
-    ...frameworkContextLines(firstFramework),
-    `- **Page Title**: ${input.pageTitle}`,
-    ...metadataLines(input.metadata),
-  ]
+  const contextLines = pageContextLines(
+    {
+      pageUrl: input.pageUrl,
+      pageTitle: input.pageTitle,
+      framework: firstFramework,
+      metadata: input.metadata,
+    },
+    options?.pageContext
+  )
   sections.push(`## Page Context\n${contextLines.join("\n")}`)
 
   // Each annotation
   for (const annotation of input.annotations) {
     sections.push(
-      `## Annotation #${annotation.id}\n${annotationLines(annotation).join("\n")}`
+      `## Annotation #${annotation.id}\n${annotationLines(annotation, options).join("\n")}`
     )
   }
 
+  // Relations (batch-only concept; omitted entirely when there are none —
+  // see docs/output-spec.md#relations)
+  const relations = relationsSection(input.relations)
+  if (relations) sections.push(relations)
+
   const body = sections.join("\n\n")
   return input.prefix ? `${input.prefix}\n\n${body}` : body
+}
+
+function relationsSection(relations: Relation[] | undefined): string | null {
+  if (!relations || relations.length === 0) return null
+  const lines = relations.map((r) => `- [#${r.fromId} ↔ #${r.toId}] ${r.instruction}`)
+  return `## Relations\n${lines.join("\n")}`
+}
+
+interface PageContextInput {
+  pageUrl: string
+  pageTitle: string
+  framework?: FrameworkInfo | null
+  metadata?: BatchInput["metadata"]
+}
+
+/** Build the Page Context content lines, shared by single/batch Markdown and the XML preset. */
+export function pageContextLines(
+  input: PageContextInput,
+  option: MarkdownSectionOptions["pageContext"] = "full"
+): string[] {
+  const lines = [`- **URL**: ${input.pageUrl}`]
+  if (option === "url-only") return lines
+  lines.push(...frameworkContextLines(input.framework), `- **Page Title**: ${input.pageTitle}`)
+  if (option === "full") lines.push(...metadataLines(input.metadata))
+  return lines
 }
 
 function frameworkContextLines(
@@ -89,7 +130,8 @@ function metadataLines(metadata: BatchInput["metadata"]): string[] {
   ]
 }
 
-function elementLines(el: ElementInfo): string[] {
+/** Selector/tag/text/attributes lines, without Styles. Reused by the XML `<element>` tag. */
+export function elementAttributeLines(el: ElementInfo): string[] {
   const lines = [
     `- **Selector**: \`${el.selector}\``,
     `- **Tag**: \`<${el.tag}>\``,
@@ -104,24 +146,112 @@ function elementLines(el: ElementInfo): string[] {
       lines.push(`  - ${key}: \`${value}\``)
     }
   }
+  return lines
+}
+
+/** Styles-only lines (empty when there's no diff). Reused by the XML `<style-diff>` tag. */
+export function elementStyleLines(el: ElementInfo): string[] {
   const styleEntries = Object.entries(el.styles ?? {})
-  if (styleEntries.length > 0) {
-    lines.push(`- **Styles**:`)
-    for (const [prop, value] of styleEntries) {
-      lines.push(`  - ${prop}: \`${value}\``)
+  if (styleEntries.length === 0) return []
+  const lines = [`- **Styles**:`]
+  for (const [prop, value] of styleEntries) {
+    lines.push(`  - ${prop}: \`${value}\``)
+  }
+  return lines
+}
+
+/**
+ * CSS provenance lines: which same-origin stylesheet rule(s) matched the
+ * element, and any CSS custom properties their declarations reference.
+ * Reused by the XML `<element>` tag. Empty when nothing was collected
+ * (cross-origin-only stylesheets, no CSSOM match, etc.).
+ */
+export function elementCssProvenanceLines(el: ElementInfo): string[] {
+  return [...cssRuleLines(el.cssRules ?? []), ...cssVariableLines(el.customProperties ?? {})]
+}
+
+function cssRuleLines(rules: CssRuleInfo[]): string[] {
+  if (rules.length === 0) return []
+  const lines = [`- **CSS Rules**:`]
+  for (const rule of rules) {
+    const location = rule.media ? `${rule.source}, ${rule.media}` : rule.source
+    lines.push(`  - \`${rule.selector}\` (${location})`)
+    for (const decl of rule.declarations) {
+      lines.push(`    - ${formatDeclaration(decl)}`)
     }
   }
   return lines
 }
 
-function componentLines(comp: ComponentInfo, hierarchyLabel: string): string[] {
+function cssVariableLines(customProperties: Record<string, string>): string[] {
+  const entries = Object.entries(customProperties)
+  if (entries.length === 0) return []
+  const lines = [`- **CSS Variables**:`]
+  for (const [name, value] of entries) {
+    lines.push(`  - ${name}: \`${value}\``)
+  }
+  return lines
+}
+
+/** "prop: value" -> "prop: `value`" (declarations are pre-formatted strings, see css-provenance.ts) */
+function formatDeclaration(decl: string): string {
+  const idx = decl.indexOf(": ")
+  if (idx === -1) return decl
+  return `${decl.slice(0, idx)}: \`${decl.slice(idx + 2)}\``
+}
+
+/** Minimal element line set: selector, tag, class (if any), text. */
+function elementMinimalLines(el: ElementInfo): string[] {
+  const lines = [
+    `- **Selector**: \`${el.selector}\``,
+    `- **Tag**: \`<${el.tag}>\``,
+  ]
+  if (el.attributes.class) {
+    lines.push(`- **Class**: \`${el.attributes.class}\``)
+  }
+  if (el.text) {
+    lines.push(`- **Text**: "${el.text}"`)
+  }
+  return lines
+}
+
+function elementLines(
+  el: ElementInfo,
+  option: MarkdownSectionOptions["element"] = "full"
+): string[] {
+  if (option === "minimal") return elementMinimalLines(el)
+  return [
+    ...elementAttributeLines(el),
+    ...elementStyleLines(el),
+    ...elementCssProvenanceLines(el),
+  ]
+}
+
+const COMPONENT_FRAMEWORK_LABELS: Record<ComponentInfo["framework"], string> = {
+  react: "React",
+  vue: "Vue",
+  svelte: "Svelte",
+}
+
+function componentFrameworkLabel(framework: ComponentInfo["framework"]): string {
+  return COMPONENT_FRAMEWORK_LABELS[framework]
+}
+
+/** Component Tree content lines, shared by single/batch Markdown and the XML `<component>` tag. */
+export function componentLines(
+  comp: ComponentInfo,
+  hierarchyLabel: string,
+  option: MarkdownSectionOptions["component"] = "full"
+): string[] {
   const lines: string[] = []
-  if (comp.hierarchy.length > 0) {
-    lines.push(`${hierarchyLabel}\`${comp.hierarchy.join("` → `")}\``)
+  const hierarchy = option === "brief" ? comp.hierarchy.slice(-3) : comp.hierarchy
+  if (hierarchy.length > 0) {
+    lines.push(`${hierarchyLabel}\`${hierarchy.join("` → `")}\``)
   }
   if (comp.source) {
     lines.push(`- **Source**: \`${formatSourceLocation(comp.source)}\``)
   }
+  if (option === "brief") return lines
   if (comp.props) {
     lines.push(`- **Props**: \`${formatObject(comp.props)}\``)
   }
@@ -132,16 +262,36 @@ function componentLines(comp: ComponentInfo, hierarchyLabel: string): string[] {
   return lines
 }
 
+/** Raw "property: before → after" lines, one per styleDelta entry. Shared by the Markdown and XML `<style-changes>` renderings. */
+export function styleDeltaEntryLines(delta: StyleDelta[] | undefined): string[] {
+  if (!delta || delta.length === 0) return []
+  return delta.map(({ property, before, after }) => `${property}: ${before} → ${after}`)
+}
+
+/** "Style changes" section lines (empty when there's no styleDelta). */
+export function styleDeltaLines(delta: StyleDelta[] | undefined): string[] {
+  const entries = styleDeltaEntryLines(delta)
+  if (entries.length === 0) return []
+  return [`**Style changes**:`, ...entries.map((line) => `  - ${line}`)]
+}
+
 function annotationLines(
-  annotation: BatchInput["annotations"][number]
+  annotation: BatchInput["annotations"][number],
+  options?: MarkdownSectionOptions
 ): string[] {
   const lines: string[] = []
   if (annotation.instruction.trim()) {
     lines.push(`**Instruction**: ${annotation.instruction.trim()}`)
   }
-  lines.push(...elementLines(annotation.elementInfo))
-  if (annotation.componentInfo) {
-    lines.push(...componentLines(annotation.componentInfo, "- **Component**: "))
+  if (annotation.tags && annotation.tags.length > 0) {
+    lines.push(`**Tags**: ${annotation.tags.join(", ")}`)
+  }
+  lines.push(...styleDeltaLines(annotation.styleDelta))
+  lines.push(...elementLines(annotation.elementInfo, options?.element))
+  if (annotation.componentInfo && options?.component !== "none") {
+    lines.push(
+      ...componentLines(annotation.componentInfo, "- **Component**: ", options?.component)
+    )
   }
   return lines
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: 'tegakari Fix'
+  short_description: 'Parse pasted tegakari output (JSONL/Markdown/XML), locate the source, apply the requested fix, and verify.'
+  default_prompt: 'Use $tegakari-fix to parse the tegakari output I pasted (JSONL, Markdown, or <tegakari-output> XML), locate the matching source file(s) for each annotation, apply only what each instruction asks for, and finish with a per-annotation verification table.'

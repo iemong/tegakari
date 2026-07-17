@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 
+import { t } from "~lib/i18n"
 import {
   deletePrefixRule,
   loadPrefixRules,
@@ -32,11 +33,11 @@ function buildRule(
     : normalizePattern(draft.pattern)
   const prefix = draft.prefix.trim()
 
-  if (!pattern || !prefix) return "Pattern and prefix are required"
+  if (!pattern || !prefix) return t("options_error_pattern_prefix_required")
 
   if (draft.isRegex) {
     const regexErr = validateRegex(pattern)
-    if (regexErr) return `Invalid regex: ${regexErr}`
+    if (regexErr) return t("options_error_invalid_regex", regexErr)
   }
 
   return { pattern, prefix, isRegex: draft.isRegex }
@@ -75,7 +76,7 @@ function useAddRule(rules: PrefixRule[], persist: Persist) {
     if (rules.some((current) => current.pattern === rule.pattern)) {
       setAddDraft((draft) => ({
         ...draft,
-        error: "A rule with this pattern already exists",
+        error: t("options_error_duplicate_pattern"),
       }))
       return
     }
@@ -123,7 +124,7 @@ function useEditRule(rules: PrefixRule[], persist: Persist) {
     if (duplicate) {
       setEditDraft((draft) => ({
         ...draft,
-        error: "A rule with this pattern already exists",
+        error: t("options_error_duplicate_pattern"),
       }))
       return
     }

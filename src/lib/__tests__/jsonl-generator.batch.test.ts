@@ -207,3 +207,76 @@ it("generateBatchJsonl: should handle batch framework with only metaFramework fr
   expect(pageContext.framework).toBeUndefined()
   expect(pageContext.metaFramework).toBe("Nuxt")
 })
+
+it("generateBatchJsonl: includes tags on the annotation entry when set", () => {
+  const input: BatchInput = {
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [{ ...fullBatchInput.annotations[0], tags: ["spacing", "color"] }],
+  }
+
+  const result = generateBatchJsonl(input)
+  const annotation = JSON.parse(result.split("\n")[1])
+
+  expect(annotation.tags).toEqual(["spacing", "color"])
+})
+
+it("generateBatchJsonl: omits tags on the annotation entry when undefined or empty", () => {
+  const undefinedTags = JSON.parse(
+    generateBatchJsonl({
+      pageUrl: "https://example.com",
+      pageTitle: "Page",
+      annotations: [{ ...fullBatchInput.annotations[0], tags: undefined }],
+    }).split("\n")[1]
+  )
+  const emptyTags = JSON.parse(
+    generateBatchJsonl({
+      pageUrl: "https://example.com",
+      pageTitle: "Page",
+      annotations: [{ ...fullBatchInput.annotations[0], tags: [] }],
+    }).split("\n")[1]
+  )
+
+  expect(undefinedTags.tags).toBeUndefined()
+  expect(emptyTags.tags).toBeUndefined()
+})
+
+it("generateBatchJsonl: includes styleDelta on the annotation entry when set", () => {
+  const input: BatchInput = {
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    annotations: [
+      {
+        ...fullBatchInput.annotations[0],
+        styleDelta: [{ property: "margin", before: "16px", after: "8px" }],
+      },
+    ],
+  }
+
+  const result = generateBatchJsonl(input)
+  const annotation = JSON.parse(result.split("\n")[1])
+
+  expect(annotation.styleDelta).toEqual([
+    { property: "margin", before: "16px", after: "8px" },
+  ])
+})
+
+it("generateBatchJsonl: omits styleDelta on the annotation entry when undefined or empty", () => {
+  const undefinedDelta = JSON.parse(
+    generateBatchJsonl({
+      pageUrl: "https://example.com",
+      pageTitle: "Page",
+      annotations: [{ ...fullBatchInput.annotations[0], styleDelta: undefined }],
+    }).split("\n")[1]
+  )
+  const emptyDelta = JSON.parse(
+    generateBatchJsonl({
+      pageUrl: "https://example.com",
+      pageTitle: "Page",
+      annotations: [{ ...fullBatchInput.annotations[0], styleDelta: [] }],
+    }).split("\n")[1]
+  )
+
+  expect(undefinedDelta.styleDelta).toBeUndefined()
+  expect(emptyDelta.styleDelta).toBeUndefined()
+})

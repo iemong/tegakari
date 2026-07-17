@@ -150,6 +150,34 @@ it("generateJsonl: should use 'data' key for vue component state", () => {
   expect(componentTree.props).toBeUndefined()
 })
 
+it("generateJsonl: should handle Svelte pageContext and componentTree (no props/state)", () => {
+  const input: MarkdownInput = {
+    instruction: "test",
+    pageUrl: "https://example.com",
+    pageTitle: "Page",
+    frameworkInfo: { framework: "Svelte 5", metaFramework: "SvelteKit" },
+    elementInfo: baseElementInfo,
+    componentInfo: {
+      framework: "svelte",
+      hierarchy: ["+page", "Widget"],
+      source: { file: "src/lib/Widget.svelte", line: 3 },
+    },
+  }
+
+  const lines = generateJsonl(input).split("\n")
+  const pageContext = JSON.parse(lines[1])
+  const componentTree = JSON.parse(lines[lines.length - 1])
+
+  expect(pageContext.framework).toBe("Svelte 5")
+  expect(pageContext.metaFramework).toBe("SvelteKit")
+  expect(componentTree.framework).toBe("svelte")
+  expect(componentTree.hierarchy).toEqual(["+page", "Widget"])
+  expect(componentTree.source).toBe("src/lib/Widget.svelte:3")
+  expect(componentTree.props).toBeUndefined()
+  expect(componentTree.state).toBeUndefined()
+  expect(componentTree.data).toBeUndefined()
+})
+
 it("generateJsonl: should handle componentInfo without props and state", () => {
   const input: MarkdownInput = {
     instruction: "test",

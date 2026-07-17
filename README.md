@@ -8,6 +8,8 @@
 **English** | [日本語](./README.ja.md)
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/phobgclkkcnkmmfnmloganoefjifnidp?label=Chrome%20Web%20Store&color=2563eb)](https://chromewebstore.google.com/detail/tegakari/phobgclkkcnkmmfnmloganoefjifnidp)
+[![CI](https://github.com/iemong/tegakari/actions/workflows/ci.yml/badge.svg)](https://github.com/iemong/tegakari/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2563eb)](LICENSE)
 
 </div>
 
@@ -15,28 +17,35 @@ A Chrome extension that lets you select elements on any web page and capture the
 
 Copy the generated text to your clipboard and paste it straight into AI editors like Claude Code or Cursor.
 
+![tegakari demo](docs/assets/demo.gif)
+
 ## Features
 
+- 🧩 **Agent Skills included** — install with `gh skill`: `tegakari-prefix-rules` walks you through setting up URL → repo prefix rules interactively, and `tegakari-fix` lets agents like Claude Code parse tegakari's output, locate the right source file, and apply + verify a fix. See [`skills/README.md`](skills/README.md)
 - Click multiple elements on a page to select and annotate them
 - Move the selection up/down the DOM tree with `\` (or `↑` / `↓`) to reach elements that are hard to hover directly
 - Select elements inside same-origin iframes too (opt-in via Options — handy for iframe-rendered pages like Google Apps Script web apps)
 - Annotate the right-clicked element straight from the "tegakari: この要素を選択" context-menu item (top frame only)
-- Remembers your output format (JSONL / Markdown) across sessions
 - Drop a pin marker on each selected element and enter an instruction in the popover next to it
+- Add quick instruction chips (Spacing / Color / Text / Size / Align / Remove) to an annotation for structured, at-a-glance intent — included in the output as tags
+- Open the "Adjust styles" panel on a pin to live-preview a CSS change on the page and record the exact before → after values (margin, padding, font-size, line-height, color, background-color, border-radius, gap)
+- Link two pins together with "Relation" to capture an instruction that spans both elements (e.g. "match the spacing between these"), shown as a connecting line and included in the output
 - Auto-capture a screenshot when you click an element (cropped around the element)
 - Grab the element's HTML info (tag, attributes, text)
 - Capture the element's effective styles (a computed-style diff vs. tag defaults) so AI can answer "tighten this spacing / change this color" with real values
-- Auto-detect React / Vue component hierarchy, props, and state
+- Collect the same-origin CSS rules that match the element (file, selector, declarations, `@media` conditions) plus resolved CSS custom-property values, so AI knows exactly where a style comes from
+- Auto-detect React / Vue component hierarchy, props, and state; detect Svelte / SvelteKit component hierarchy and source location
 - Resolve the component's source location (`file:line`) into the output when available (dev builds)
-- Detect meta-frameworks such as Next.js / Nuxt
+- Detect meta-frameworks such as Next.js / Nuxt / SvelteKit
 - Collect page metadata (viewport, user agent, language) and include it in the output
-- Switch between JSONL / Markdown and copy to the clipboard
+- Choose an output preset from the Toolbar dropdown — JSONL, Markdown, **Claude Code** (XML, auto-triggers the `tegakari-fix` skill), **Cursor** (trimmed), or **Minimal** (token-saving) — and copy to the clipboard. Your choice is remembered across sessions
+- Define your own output templates with `{{instruction}}`-style placeholders for a custom workflow (Options page, up to 10, JSON import/export)
 - Copy all annotation screenshots as a single contact-sheet image
 - Export / import annotation sets as a timestamped JSON file (`tegakari-annotations-*.json`) to share or back them up
 - Per-URL-pattern prefix settings (e.g. `[repo=my-app]`)
 - Persist annotations per URL (up to 50, restored after a page reload)
 - Archive management for annotations (Active / Archived)
-- Dark / Light theme support
+- Dark / Light theme support; Options page available in English / Japanese
 
 ## Installation
 
@@ -75,14 +84,14 @@ Install it from the Chrome Web Store:
    - If you can't land on the exact element, press `\` (or `↑`) to move the highlight up to the parent, or `↓` to move back down to a child. Once it's on the right element, confirm with `Enter` (or just click)
 3. Click the element to drop a pin marker and open a popover
 4. Enter an instruction in the popover and save with **Save** or `Cmd+Enter`
+   - Add quick instruction chips (Spacing / Color / Text / Size / Align / Remove) for structured hints, or open **Adjust styles** to live-preview a CSS change and record its exact before → after value
+   - Click **Link** on a pin's popover, then click another pin to record an instruction that spans both of them (e.g. "match the spacing between these"), shown as a connecting line
 5. Keep clicking elements to annotate several at once
 6. Use the toolbar at the bottom of the screen:
    - **Inbox**: show the annotation list (Active / Archived tabs)
    - **Copy**: copy all annotations to the clipboard
    - **Copy Image**: copy all annotation screenshots as a single contact-sheet image
-   - **JSONL / MD**: switch the output format
-   - **Theme toggle**: dark / light mode
-   - **Settings**: manage prefix rules (Options page)
+   - **Preset dropdown**: switch the output format — JSONL, Markdown, Claude Code, Cursor, Minimal, or any custom template you've defined in Options
 7. Each item in the Inbox has a copy button (single copy) and an archive button
 8. Use the import / export buttons in the Inbox to save the annotation set as a JSON file (`tegakari-annotations-*.json`) and restore it later
 9. Paste it into your AI editor and put it to work
@@ -90,7 +99,7 @@ Install it from the Chrome Web Store:
 
 ### Prefix settings
 
-Open the Options page from the settings icon (⚙) in the toolbar to configure a prefix per URL pattern.
+Open the Options page (right-click the tegakari icon in the Chrome toolbar → "Options") to configure a prefix per URL pattern. Theme (dark / light) and custom output templates are managed on the same Options page.
 
 - **Host match**: `localhost:3000` → applied automatically on that host
 - **Regex match**: `https?://staging\.example\.com/.*` → matched against the full URL
@@ -110,6 +119,8 @@ Enable "Select inside iframes" under the **Behavior** section of the Options pag
 If you are not comfortable with regular expressions, the [`tegakari-prefix-rules` skill](skills/tegakari-prefix-rules/SKILL.md) — installable via `gh skill` — generates the import JSON interactively: just answer which URLs your app runs on and the repository name. See [`skills/README.md`](skills/README.md) for details.
 
 ## Output examples
+
+The examples below show the full Markdown/JSONL formats. For the output presets (Claude Code / Cursor / Minimal), custom templates, quick-instruction tags, style deltas, CSS provenance, and relations, see [`docs/output-spec.en.md`](docs/output-spec.en.md).
 
 ### Markdown format
 
@@ -159,8 +170,10 @@ If you are not comfortable with regular expressions, the [`tegakari-prefix-rules
 |---|---|
 | React | Component hierarchy, props, state (Hooks) |
 | Vue 2 / 3 | Component hierarchy, props, data |
+| Svelte | Component hierarchy, source location (`file:line`, dev builds only) |
 | Next.js | App Router / Pages Router detection |
 | Nuxt | Framework detection |
+| SvelteKit | Framework detection |
 
 ## Development
 
@@ -170,6 +183,12 @@ pnpm build      # Production build
 pnpm test       # Run tests
 pnpm package    # ZIP packaging (for distribution)
 ```
+
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome. Small,
+focused PRs are preferred over large ones. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the development setup, quality gates, and PR guidelines.
 
 ## Support development
 

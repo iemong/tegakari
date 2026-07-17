@@ -3,6 +3,8 @@
   "files": {
     "includes": [
       "**",
+      "!.claude",
+      "!.codex-agent-view",
       "!.plasmo",
       "!.stryker-tmp",
       "!build",

@@ -1,0 +1,306 @@
+{
+  "options_common_cancel": {
+    "message": "Cancel",
+    "description": "Cancel button label"
+  },
+  "options_common_save": {
+    "message": "Save",
+    "description": "Save button label"
+  },
+  "options_common_edit": {
+    "message": "Edit",
+    "description": "Edit button label"
+  },
+  "options_common_delete": {
+    "message": "Delete",
+    "description": "Delete button label"
+  },
+  "options_add_rule_title": {
+    "message": "Add Rule",
+    "description": "Heading of the add-prefix-rule form"
+  },
+  "options_add_rule_submit": {
+    "message": "Add",
+    "description": "Submit button label for the add-prefix-rule form"
+  },
+  "options_add_rule_regex_label": {
+    "message": "Regex (match against full URL)",
+    "description": "Checkbox label for enabling regex matching on the add-rule form"
+  },
+  "options_add_rule_pattern_placeholder_regex": {
+    "message": "https?://example\\.com/.*",
+    "description": "Placeholder for the pattern input when regex mode is enabled"
+  },
+  "options_add_rule_pattern_placeholder_host": {
+    "message": "example.com  (you can paste a full URL, too)",
+    "description": "Placeholder for the pattern input when regex mode is disabled"
+  },
+  "options_field_pattern_placeholder": {
+    "message": "Pattern",
+    "description": "Placeholder for the pattern input in the rule edit form"
+  },
+  "options_field_prefix_placeholder": {
+    "message": "Prefix",
+    "description": "Placeholder for the prefix input in the rule edit form"
+  },
+  "options_field_regex_label": {
+    "message": "Regex",
+    "description": "Short checkbox label for regex mode in the rule edit form"
+  },
+  "options_section_appearance": {
+    "message": "Appearance",
+    "description": "Title of the Appearance settings section"
+  },
+  "options_appearance_theme_label": {
+    "message": "Theme",
+    "description": "Label for the theme toggle"
+  },
+  "options_appearance_theme_help": {
+    "message": "Switch between light and dark mode.",
+    "description": "Help text under the theme toggle"
+  },
+  "options_appearance_theme_light": {
+    "message": "Light",
+    "description": "Light theme option label"
+  },
+  "options_appearance_theme_dark": {
+    "message": "Dark",
+    "description": "Dark theme option label"
+  },
+  "options_appearance_current_light": {
+    "message": "Currently light mode.",
+    "description": "Status text shown when light mode is active"
+  },
+  "options_appearance_current_dark": {
+    "message": "Currently dark mode.",
+    "description": "Status text shown when dark mode is active"
+  },
+  "options_section_behavior": {
+    "message": "Behavior",
+    "description": "Title of the Behavior settings section"
+  },
+  "options_behavior_iframe_label": {
+    "message": "Select inside iframes",
+    "description": "Label for the iframe selection toggle"
+  },
+  "options_behavior_iframe_help": {
+    "message": "Also pick elements inside same-origin iframes (e.g. a Google Apps Script web app). Cross-origin iframes can't be accessed.",
+    "description": "Help text under the iframe selection toggle"
+  },
+  "options_header_settings": {
+    "message": "Settings",
+    "description": "Page header subtitle next to the tegakari logo"
+  },
+  "options_footer_message": {
+    "message": "tegakari is free and open source. If you find it useful, please consider supporting continued development.",
+    "description": "Footer message about the project being free and open source"
+  },
+  "options_footer_sponsor": {
+    "message": "♥ Sponsor on GitHub",
+    "description": "Footer link to the GitHub Sponsors page"
+  },
+  "options_footer_repo": {
+    "message": "★ GitHub Repository",
+    "description": "Footer link to the GitHub repository"
+  },
+  "options_section_prefix_rules": {
+    "message": "Prefix Rules",
+    "description": "Title of the Prefix Rules settings section"
+  },
+  "options_prefix_rules_desc_prefix": {
+    "message": "URL patterns are matched against the hostname (e.g.,",
+    "description": "First half of the Prefix Rules description, followed by an inline code example"
+  },
+  "options_prefix_rules_desc_suffix": {
+    "message": "). Enable regex to match against the full URL. Rules are evaluated top-to-bottom; first match wins.",
+    "description": "Second half of the Prefix Rules description, following an inline code example"
+  },
+  "options_rule_list_empty": {
+    "message": "No rules yet. Add one below.",
+    "description": "Empty state shown when there are no prefix rules"
+  },
+  "options_rule_view_regex_badge": {
+    "message": "regex",
+    "description": "Small badge shown next to a rule pattern that uses regex"
+  },
+  "options_examples_title": {
+    "message": "Examples",
+    "description": "Title of the examples table"
+  },
+  "options_examples_col_pattern": {
+    "message": "Pattern",
+    "description": "Examples table column header for the pattern"
+  },
+  "options_examples_col_type": {
+    "message": "Type",
+    "description": "Examples table column header for the match type"
+  },
+  "options_examples_col_matches": {
+    "message": "Matches",
+    "description": "Examples table column header for the description of what the pattern matches"
+  },
+  "options_examples_type_host": {
+    "message": "Host",
+    "description": "Examples table match type: hostname matching"
+  },
+  "options_examples_type_regex": {
+    "message": "Regex",
+    "description": "Examples table match type: regex matching"
+  },
+  "options_examples_match_staging": {
+    "message": "Staging app pages",
+    "description": "Examples table description for a staging subdomain regex example"
+  },
+  "options_examples_match_vercel": {
+    "message": "Any Vercel deployment",
+    "description": "Examples table description for a Vercel deployment regex example"
+  },
+  "options_import_button": {
+    "message": "Import",
+    "description": "Import button label"
+  },
+  "options_export_button": {
+    "message": "Export",
+    "description": "Export button label"
+  },
+  "options_import_title": {
+    "message": "Import rules from a JSON file (existing rules with the same pattern will be overwritten)",
+    "description": "Tooltip for the Import button"
+  },
+  "options_export_title": {
+    "message": "Download all rules as JSON",
+    "description": "Tooltip for the Export button"
+  },
+  "options_export_success": {
+    "message": "Exported $1 rule(s).",
+    "description": "Success message shown after exporting rules"
+  },
+  "options_import_read_error": {
+    "message": "Failed to read file: $1",
+    "description": "Error message shown when the selected file can't be read"
+  },
+  "options_import_failed_prefix": {
+    "message": "Import failed.",
+    "description": "Prefix of the error message shown when no rules could be imported"
+  },
+  "options_import_no_valid_rules": {
+    "message": "No valid rules found.",
+    "description": "Fallback detail appended to the import failure message when there were no parse errors"
+  },
+  "options_import_partial": {
+    "message": "Imported $1 rule(s); skipped $2: $3",
+    "description": "Message shown when some rules were imported and others were skipped"
+  },
+  "options_import_success": {
+    "message": "Imported $1 rule(s).",
+    "description": "Success message shown after importing rules"
+  },
+  "options_error_pattern_prefix_required": {
+    "message": "Pattern and prefix are required",
+    "description": "Validation error when the pattern or prefix field is empty"
+  },
+  "options_error_invalid_regex": {
+    "message": "Invalid regex: $1",
+    "description": "Validation error when the regex pattern fails to compile"
+  },
+  "options_error_duplicate_pattern": {
+    "message": "A rule with this pattern already exists",
+    "description": "Validation error when adding or editing a rule with a pattern that already exists"
+  },
+  "options_templates_section_title": {
+    "message": "Output Templates",
+    "description": "Title of the Output Templates settings section"
+  },
+  "options_templates_section_desc": {
+    "message": "Define your own output format with {{...}} placeholders: the header renders once, the annotation template renders once per selected element. Templates appear in the Toolbar's format dropdown alongside the built-in presets.",
+    "description": "Description of the Output Templates section"
+  },
+  "options_templates_empty": {
+    "message": "No custom templates yet.",
+    "description": "Empty state message shown when there are no custom templates"
+  },
+  "options_templates_add_title": {
+    "message": "Add Template",
+    "description": "Heading of the add-output-template form"
+  },
+  "options_templates_add_submit": {
+    "message": "Create Template",
+    "description": "Submit button label for the add-output-template form"
+  },
+  "options_templates_field_name_placeholder": {
+    "message": "Name",
+    "description": "Placeholder for the template name input"
+  },
+  "options_templates_field_header_placeholder": {
+    "message": "Header (rendered once)",
+    "description": "Placeholder for the header template textarea"
+  },
+  "options_templates_field_annotation_placeholder": {
+    "message": "Annotation (rendered per element)",
+    "description": "Placeholder for the annotation template textarea"
+  },
+  "options_templates_label_header": {
+    "message": "Header",
+    "description": "Short label identifying the header template field/section"
+  },
+  "options_templates_label_annotation": {
+    "message": "Annotation",
+    "description": "Short label identifying the annotation template field/section"
+  },
+  "options_templates_error_name_required": {
+    "message": "Name is required",
+    "description": "Validation error when the template name field is empty"
+  },
+  "options_templates_error_limit_reached": {
+    "message": "You can save up to $1 templates",
+    "description": "Validation error when adding a template past the storage limit"
+  },
+  "options_templates_legend_title": {
+    "message": "Placeholders",
+    "description": "Heading above the placeholder reference legend"
+  },
+  "options_templates_import_button": {
+    "message": "Import Templates",
+    "description": "Button label to import templates from a JSON file"
+  },
+  "options_templates_export_button": {
+    "message": "Export Templates",
+    "description": "Button label to export templates to a JSON file"
+  },
+  "options_templates_import_title": {
+    "message": "Import templates from a JSON file",
+    "description": "Tooltip title for the import templates button"
+  },
+  "options_templates_export_title": {
+    "message": "Export templates to a JSON file",
+    "description": "Tooltip title for the export templates button"
+  },
+  "options_templates_export_success": {
+    "message": "Exported $1 template(s).",
+    "description": "Success message shown after exporting templates"
+  },
+  "options_templates_import_success": {
+    "message": "Imported $1 template(s).",
+    "description": "Success message shown after importing templates"
+  },
+  "options_templates_import_partial": {
+    "message": "Imported $1 template(s); skipped $2: $3",
+    "description": "Message shown when some templates were imported and others were skipped"
+  },
+  "options_templates_import_overflow_detail": {
+    "message": "$1 template(s) exceeded the $2-template limit and were not imported",
+    "description": "Detail appended to the partial-import message when valid entries were skipped for exceeding the storage cap"
+  },
+  "options_templates_import_failed_prefix": {
+    "message": "Import failed:",
+    "description": "Prefix shown before the error detail when a template import fails entirely"
+  },
+  "options_templates_import_no_valid": {
+    "message": "No valid templates found in the file",
+    "description": "Error detail shown when a template import file contains zero valid entries"
+  },
+  "options_templates_import_read_error": {
+    "message": "Could not read the file: $1",
+    "description": "Error message shown when the selected template file can't be read"
+  }
+}

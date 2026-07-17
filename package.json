@@ -18,7 +18,8 @@
     "test:mutation": "stryker run",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "demo:gif": "node scripts/record-demo.mts"
   },
   "dependencies": {
     "plasmo": "^0.89.0",
@@ -53,6 +54,7 @@
     ]
   },
   "manifest": {
+    "default_locale": "en",
     "homepage_url": "https://github.com/iemong/tegakari",
     "permissions": [
       "activeTab",

@@ -3,7 +3,8 @@
 // set pinned by one person (e.g. a PM on a staging site) can be reviewed and
 // fed to an AI editor by another.
 
-import type { Annotation, AnnotationStore } from "./types"
+import { isSameRelationPair } from "./relations"
+import type { Annotation, AnnotationStore, Relation, StyleDelta } from "./types"
 
 const EXPORT_FORMAT = "tegakari-annotations"
 const EXPORT_VERSION = 1
@@ -90,11 +91,15 @@ export function parseAnnotationExport(text: string): ParseResult {
     return { store: null, errors: ["No valid annotations found.", ...errors] }
   }
 
+  const annotationIds = new Set(annotations.map((a) => a.id))
+  const relations = validRelations(store.relations, annotationIds)
+
   return {
     store: {
       url: store.url,
       metadata: store.metadata as AnnotationStore["metadata"],
       annotations,
+      ...relations,
     },
     errors,
   }
@@ -134,7 +139,71 @@ function validateAnnotation(entry: unknown): Annotation | null {
     pageY: a.pageY,
     ...(typeof a.screenshot === "string" ? { screenshot: a.screenshot } : {}),
     createdAt: typeof a.createdAt === "number" ? a.createdAt : Date.now(),
+    ...validTags(a.tags),
+    ...validStyleDelta(a.styleDelta),
   }
+}
+
+/** Keep `tags` only if every entry survived the JSON round-trip as a string. */
+function validTags(tags: unknown): { tags: string[] } | Record<string, never> {
+  if (!Array.isArray(tags) || !tags.every((t) => typeof t === "string")) {
+    return {}
+  }
+  return { tags }
+}
+
+function isStyleDeltaEntry(entry: unknown): entry is StyleDelta {
+  if (typeof entry !== "object" || entry === null) return false
+  const d = entry as Partial<StyleDelta>
+  return (
+    typeof d.property === "string" &&
+    typeof d.before === "string" &&
+    typeof d.after === "string"
+  )
+}
+
+/** Keep `styleDelta` only if every entry survived the JSON round-trip with the right shape. */
+function validStyleDelta(
+  styleDelta: unknown
+): { styleDelta: StyleDelta[] } | Record<string, never> {
+  if (!Array.isArray(styleDelta) || !styleDelta.every(isStyleDeltaEntry)) {
+    return {}
+  }
+  return { styleDelta }
+}
+
+function isRelationEntry(entry: unknown): entry is Relation {
+  if (typeof entry !== "object" || entry === null) return false
+  const r = entry as Partial<Relation>
+  return (
+    typeof r.id === "number" &&
+    typeof r.fromId === "number" &&
+    typeof r.toId === "number" &&
+    typeof r.instruction === "string" &&
+    r.instruction.trim().length > 0
+  )
+}
+
+/**
+ * Keep `relations` only for entries with a valid shape that reference two
+ * distinct annotation ids present in this same import, deduped by unordered
+ * pair. Drops the key entirely (rather than an empty array) when nothing
+ * survives, matching the `tags`/`styleDelta` "omitted means none" pattern.
+ */
+function validRelations(
+  relations: unknown,
+  annotationIds: Set<number>
+): { relations: Relation[] } | Record<string, never> {
+  if (!Array.isArray(relations)) return {}
+  const kept: Relation[] = []
+  for (const entry of relations) {
+    if (!isRelationEntry(entry)) continue
+    if (entry.fromId === entry.toId) continue
+    if (!annotationIds.has(entry.fromId) || !annotationIds.has(entry.toId)) continue
+    if (kept.some((r) => isSameRelationPair(r, entry.fromId, entry.toId))) continue
+    kept.push({ ...entry, instruction: entry.instruction.trim() })
+  }
+  return kept.length > 0 ? { relations: kept } : {}
 }
 
 /** Compare URLs ignoring the hash, mirroring the annotation-store key rule */

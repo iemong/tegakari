@@ -1,5 +1,6 @@
 import type { CSSProperties, KeyboardEvent } from "react"
 
+import { t } from "~lib/i18n"
 import type { Theme } from "~lib/theme"
 
 import type { RuleDraft } from "../hooks/use-prefix-rules-manager"
@@ -30,12 +31,12 @@ export function AddRuleForm({
   }
   const s = formStyles(theme)
   const patternPlaceholder = draft.isRegex
-    ? "https?://example\\.com/.*"
-    : "example.com  (URLを貼ってもOK)"
+    ? t("options_add_rule_pattern_placeholder_regex")
+    : t("options_add_rule_pattern_placeholder_host")
 
   return (
     <div style={s.card}>
-      <div style={s.title}>Add Rule</div>
+      <div style={s.title}>{t("options_add_rule_title")}</div>
       <div style={s.row}>
         <input
           value={draft.pattern}
@@ -60,12 +61,12 @@ export function AddRuleForm({
             onChange={(event) => onChange({ isRegex: event.target.checked })}
             style={{ accentColor: theme.accent }}
           />
-          Regex (match against full URL)
+          {t("options_add_rule_regex_label")}
         </label>
         <button
           onClick={onAdd}
           style={buttonStyle(theme.accent, theme.accentText)}>
-          Add
+          {t("options_add_rule_submit")}
         </button>
       </div>
       {draft.error && <div style={s.error}>{draft.error}</div>}
