@@ -17,6 +17,7 @@ import {
   type OutputTemplate,
   type SelectedOutputPreset,
 } from "~lib/output-templates"
+import { stopOverlayKeyPropagation } from "~lib/overlay-keys"
 import { findMatchingPrefix, loadPrefixRules } from "~lib/prefix-rules"
 import {
   loadOutputPreset,
@@ -259,6 +260,8 @@ function ToolbarBar({
       ref={toolbarRef}
       // @ts-expect-error popover attr is missing from React 18 types
       popover="manual"
+      onKeyDown={stopOverlayKeyPropagation}
+      onKeyUp={stopOverlayKeyPropagation}
       style={toolbarBarStyle(theme)}>
       <InboxButton
         theme={theme}

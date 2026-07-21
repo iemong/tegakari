@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useState } from "react"
 
 import { TrashIcon } from "~components/icons"
+import { stopOverlayKeyPropagation } from "~lib/overlay-keys"
 import type { Theme } from "~lib/theme"
 
 import {
@@ -60,6 +61,8 @@ export function RelationPopover({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={stopOverlayKeyPropagation}
+      onKeyUp={stopOverlayKeyPropagation}
       style={{ ...popoverContainerStyle(theme), left: x, top: y }}>
       <div style={popoverHeaderStyle(theme)}>
         <span>

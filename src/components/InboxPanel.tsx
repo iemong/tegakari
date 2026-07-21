@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useState } from "react"
 
 import { TrashIcon } from "~components/icons"
+import { stopOverlayKeyPropagation } from "~lib/overlay-keys"
 import { type Theme, useTheme } from "~lib/theme"
 import type { Annotation, PageMetadata, Relation } from "~lib/types"
 
@@ -40,7 +41,11 @@ export default function InboxPanel(props: Props) {
   const { theme } = useTheme()
 
   return (
-    <div onClick={(e) => e.stopPropagation()} style={panelStyle(theme)}>
+    <div
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={stopOverlayKeyPropagation}
+      onKeyUp={stopOverlayKeyPropagation}
+      style={panelStyle(theme)}>
       <InboxHeader
         theme={theme}
         count={props.annotations.length}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>tegakari e2e: hostile single-key hotkeys fixture</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 24px; }
+      #content-target { border: 1px solid #999; padding: 12px; border-radius: 6px; font-size: 16px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>fixture with YouTube-style single-key hotkeys</h1>
+      <p>
+        This page installs a bubble-phase `document` keydown listener that
+        calls `preventDefault()` on digit keys — mirroring sites that use
+        digits 0-9 to seek video playback. Typing a digit into tegakari's
+        own overlay inputs must not be swallowed by this listener.
+      </p>
+    </header>
+
+    <main>
+      <article>
+        <h2>Section</h2>
+        <p id="content-target">Some content for the extension to pick.</p>
+      </article>
+    </main>
+
+    <script>
+      document.addEventListener("keydown", (e) => {
+        if (/^[0-9]$/.test(e.key)) e.preventDefault()
+      })
+    </script>
+  </body>
+</html>
