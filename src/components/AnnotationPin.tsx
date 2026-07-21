@@ -1,6 +1,7 @@
 import type { CSSProperties, KeyboardEvent, ReactNode, RefObject } from "react"
 
 import { TrashIcon } from "~components/icons"
+import { stopOverlayKeyPropagation } from "~lib/overlay-keys"
 import { type Theme, useTheme } from "~lib/theme"
 import type { Annotation, StyleDelta } from "~lib/types"
 
@@ -162,6 +163,8 @@ function PinPopover({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={stopOverlayKeyPropagation}
+      onKeyUp={stopOverlayKeyPropagation}
       style={{ ...style, ...popoverContainerStyle(theme) }}>
       <PinPopoverHeader
         annotation={annotation}

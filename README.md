@@ -120,7 +120,7 @@ If you are not comfortable with regular expressions, the [`tegakari-prefix-rules
 
 ## Output examples
 
-The examples below show the full Markdown/JSONL formats. For the output presets (Claude Code / Cursor / Minimal), custom templates, quick-instruction tags, style deltas, CSS provenance, and relations, see [`docs/output-spec.en.md`](docs/output-spec.en.md).
+The examples below show the full Markdown/JSONL formats, including quick-instruction tags, a style-change diff, CSS provenance, and a relation between two annotations. For the output presets (Claude Code / Cursor / Minimal) and custom templates, see [`docs/output-spec.en.md`](docs/output-spec.en.md).
 
 ### Markdown format
 
@@ -137,7 +137,11 @@ The examples below show the full Markdown/JSONL formats. For the output presets 
 - **User Agent**: Mozilla/5.0 ...
 
 ## Annotation #1
-**Instruction**: When this save button is clicked, show a confirm dialog
+**Instruction**: Tighten the padding on this save button and make the corners a bit sharper
+**Tags**: spacing
+**Style changes**:
+  - padding: 8px 16px → 6px 12px
+  - border-radius: 8px → 4px
 - **Selector**: `#settings-form > div:nth-child(2) > button.btn-primary`
 - **Tag**: `<button>`
 - **Text**: "Save"
@@ -150,10 +154,26 @@ The examples below show the full Markdown/JSONL formats. For the output presets 
   - border-radius: `8px`
   - background-color: `rgb(37, 99, 235)`
   - color: `rgb(255, 255, 255)`
+- **CSS Rules**:
+  - `.btn-primary` (app.css)
+    - background-color: `rgb(37, 99, 235)`
+    - border-radius: `8px`
 - **Component**: `SettingsPage` → `SettingsForm` → `SubmitButton`
 - **Source**: `src/components/SubmitButton.tsx:42`
 - **Props**: `{ variant: "primary", disabled: false, onClick: fn }`
 - **State**: `{ isSubmitting: false }`
+
+## Annotation #2
+**Instruction**: When this cancel button is clicked, show a confirm dialog before discarding changes
+- **Selector**: `#settings-form > div:nth-child(2) > button.btn-secondary`
+- **Tag**: `<button>`
+- **Text**: "Cancel"
+- **Attributes**:
+  - class: `btn btn-secondary px-4 py-2`
+  - type: `button`
+
+## Relations
+- [#1 ↔ #2] Match the horizontal gap between these two buttons
 ```
 
 ### JSONL format (default)
@@ -161,7 +181,9 @@ The examples below show the full Markdown/JSONL formats. For the output presets 
 ```jsonl
 {"type":"prefix","content":"[repo=my-app]"}
 {"type":"pageContext","url":"https://example.com/dashboard/settings","pageTitle":"Settings | Example App","framework":"React","metaFramework":"Next.js (App Router)","viewport":"1920x1080","language":"en","userAgent":"Mozilla/5.0 ..."}
-{"type":"annotation","id":1,"instruction":"When this save button is clicked, show a confirm dialog","element":{"selector":"#settings-form > div:nth-child(2) > button.btn-primary","tag":"button","text":"Save","attributes":{"class":"btn btn-primary px-4 py-2","data-testid":"settings-submit-btn","type":"submit"},"styles":{"padding":"8px 16px","border-radius":"8px","background-color":"rgb(37, 99, 235)","color":"rgb(255, 255, 255)"}},"component":{"framework":"react","hierarchy":["SettingsPage","SettingsForm","SubmitButton"],"source":"src/components/SubmitButton.tsx:42","props":{"variant":"primary","disabled":false,"onClick":"fn"},"state":{"isSubmitting":false}}}
+{"type":"annotation","id":1,"instruction":"Tighten the padding on this save button and make the corners a bit sharper","tags":["spacing"],"styleDelta":[{"property":"padding","before":"8px 16px","after":"6px 12px"},{"property":"border-radius","before":"8px","after":"4px"}],"element":{"selector":"#settings-form > div:nth-child(2) > button.btn-primary","tag":"button","text":"Save","attributes":{"class":"btn btn-primary px-4 py-2","data-testid":"settings-submit-btn","type":"submit"},"styles":{"padding":"8px 16px","border-radius":"8px","background-color":"rgb(37, 99, 235)","color":"rgb(255, 255, 255)"},"cssRules":[{"selector":".btn-primary","source":"app.css","declarations":["background-color: rgb(37, 99, 235)","border-radius: 8px"]}]},"component":{"framework":"react","hierarchy":["SettingsPage","SettingsForm","SubmitButton"],"source":"src/components/SubmitButton.tsx:42","props":{"variant":"primary","disabled":false,"onClick":"fn"},"state":{"isSubmitting":false}}}
+{"type":"annotation","id":2,"instruction":"When this cancel button is clicked, show a confirm dialog before discarding changes","element":{"selector":"#settings-form > div:nth-child(2) > button.btn-secondary","tag":"button","text":"Cancel","attributes":{"class":"btn btn-secondary px-4 py-2","type":"button"}}}
+{"type":"relation","id":1,"from":1,"to":2,"instruction":"Match the horizontal gap between these two buttons"}
 ```
 
 ## Supported frameworks
